@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018 FIRST. All Rights Reserved.                             */
+/* Copyright (c) 2018-2019 FIRST. All Rights Reserved.                        */
 /* Open Source Software - may be modified and shared by FRC teams. The code   */
 /* must be accompanied by the FIRST BSD license file in the root directory of */
 /* the project.                                                               */
@@ -11,23 +11,22 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.DemandType;
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
-import com.ctre.phoenix.sensors.CANCoder;
+import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
+import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 
 import edu.wpi.first.wpilibj.Timer;
 import frc.lib.control.LookAhead;
 import frc.lib.control.Path;
 import frc.lib.control.PathFollower;
-import frc.lib.drivers.CANCoderFactory;
-import frc.lib.drivers.LazyTalonSRX;
+import frc.lib.drivers.LazyTalonFX;
 import frc.lib.drivers.PheonixUtil;
-import frc.lib.drivers.TalonSRXFactory;
-import frc.lib.drivers.TalonSRXUtil;
+import frc.lib.drivers.TalonFXFactory;
+import frc.lib.drivers.TalonFXUtil;
 import frc.lib.geometry.Pose2d;
 import frc.lib.geometry.Rotation2d;
 import frc.lib.geometry.Twist2d;
 import frc.lib.sensors.Navx;
 import frc.lib.util.DriveSignal;
-import frc.lib.util.ReflectingCSVWriter;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.Util;
 import frc.lib.util.TelemetryUtil.PrintStyle;
@@ -38,14 +37,15 @@ import frc.robot.RobotState;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 
+
 /**
  * Add your docs here.
  */
 public class Drive extends Subsystem {
 
-    private static Drive mInstance;
+    private static Drive mInstance = null;
 
-    public synchronized static Drive getInstance() {
+    public static Drive getInstance() {
         if(mInstance == null) {
             mInstance = new Drive();
         }
@@ -53,14 +53,13 @@ public class Drive extends Subsystem {
     }
 
     //hardware
-    private final LazyTalonSRX mLeftMaster, mLeftSlave, mRightMaster, mRightSlave;
+    private final LazyTalonFX mLeftMaster, mLeftSlave, mRightMaster, mRightSlave;
     private final Navx mNavx;
 
     //hardware states
     private boolean mIsBrakeMode;
     private Rotation2d mGyroOffset = Rotation2d.identity();
     private PeriodicIO mPeriodicIO;
-    private ReflectingCSVWriter<PeriodicIO> mCSVWriter = null;
 
     //controllers
     private PathFollower mPathFollower;
@@ -69,32 +68,46 @@ public class Drive extends Subsystem {
     //control states
     private DriveControlState mDriveControlState;
 
+    private synchronized void configureMotorForDrive(LazyTalonFX falcon, InvertType inversion) {
+        falcon.setInverted(inversion);
+        PheonixUtil.checkError(falcon.configOpenloopRamp(0.3, Constants.kTimeOutMs), falcon.getName()
+         + " failed to set open loop ramp rate", true);
 
-    //drive motor controller configuration methods with feedback in case of failure
-    private void configureTalonForDrive(LazyTalonSRX talon, InvertType inversion) {
-        talon.setInverted(inversion);
-        PheonixUtil.checkError(talon.configVoltageCompSaturation(12.0),
-                "Failed to set voltage compensation for " + talon.getName(), true);
-        talon.enableVoltageCompensation(true);
+        PheonixUtil.checkError(falcon.configClosedloopRamp(0.0, Constants.kTimeOutMs), falcon.getName()
+         + " failed to set closed loop ramp rate", true);
+
+        PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs), falcon.getName() 
+         + " failed to set voltage compensation", true);
+  
+        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 
+            35, 0, 0)), falcon.getName() + " failed to set output current limit", true);
+
+        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true,
+             35, 0, 0)), falcon.getName() + " failed to set input current limit", true);
     }
 
-
+    private synchronized void configureMasterForDrive(LazyTalonFX falcon, InvertType inversion, boolean sensorPhase) {
+        configureMotorForDrive(falcon, inversion);
+        PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048/Constants.kWheelDiameter) / Math.PI, 0, Constants.kTimeOutMs),
+            falcon.getName() + " failed to set sensor coeffecient", true);
+        falcon.setSensorPhase(sensorPhase);
+    }
+    
 
     private Drive() {
         mPeriodicIO = new PeriodicIO();
 
-        //TODO: Look over factory settings to ensure they work on falcons
-        mLeftMaster = TalonSRXFactory.createDefaultTalon("Drive Left Master", Ports.DRIVE_LEFT_MASTER_ID);
-        configureTalonForDrive(mLeftMaster, InvertType.None);
+        mLeftMaster = TalonFXFactory.createDefaultFalcon("Drive Left Master", Ports.DRIVE_LEFT_MASTER_ID);
+        configureMasterForDrive(mLeftMaster, InvertType.None, false);
 
-        mLeftSlave = TalonSRXFactory.createSlaveTalon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
-        configureTalonForDrive(mLeftSlave, InvertType.FollowMaster);
+        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
+        configureMotorForDrive(mLeftSlave, InvertType.FollowMaster);
 
-        mRightMaster = TalonSRXFactory.createDefaultTalon("Drive Right Master", Ports.DRIVE_RIGHT_MASTER_ID);
-        configureTalonForDrive(mRightMaster, InvertType.None);
+        mRightMaster = TalonFXFactory.createDefaultFalcon("Drive Right Master", Ports.DRIVE_RIGHT_MASTER_ID);
+        configureMasterForDrive(mRightMaster, InvertType.InvertMotorOutput, false);
 
-        mRightSlave = TalonSRXFactory.createSlaveTalon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID, Ports.DRIVE_RIGHT_MASTER_ID);
-        configureTalonForDrive(mRightSlave, InvertType.FollowMaster);
+        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID, Ports.DRIVE_RIGHT_MASTER_ID);
+        configureMotorForDrive(mRightSlave, InvertType.FollowMaster);
 
         mNavx = Navx.getInstance();
 
@@ -102,16 +115,12 @@ public class Drive extends Subsystem {
         setBrakeMode(true);
 
         setOpenLoop(DriveSignal.NEUTRAL);
-
     }
+
 
     private static class PeriodicIO {
         //inputs
         public double timestamp;
-        public double left_voltage;
-        public double right_voltage;
-        public double left_ticks;
-        public double right_ticks;
         public double left_position;
         public double right_position;
         public double left_distance;
@@ -120,6 +129,9 @@ public class Drive extends Subsystem {
         public double right_velocity_per_100ms;
         public Rotation2d heading = Rotation2d.identity();
         public Pose2d error = Pose2d.identity();
+
+        public double left_temperature;
+        public double right_temperature;
 
         //outputs
         public double left_demand;
@@ -133,45 +145,40 @@ public class Drive extends Subsystem {
     @Override
     public synchronized void readPeriodicInputs() {
         mPeriodicIO.timestamp = Timer.getFPGATimestamp();
-        
+
         double prevLeftPosition = mPeriodicIO.left_position;
         double prevRightPosition = mPeriodicIO.right_position;
 
-        mPeriodicIO.left_voltage = mLeftMaster.getMotorOutputVoltage() * mLeftMaster.getBusVoltage();
-        mPeriodicIO.right_voltage = mRightMaster.getMotorOutputVoltage() * mRightMaster.getBusVoltage();
-
-        mPeriodicIO.left_ticks = mLeftMaster.getSelectedSensorPosition(0);
-        mPeriodicIO.right_ticks = mRightMaster.getSelectedSensorPosition(0);
-
-        mPeriodicIO.left_position = mPeriodicIO.left_ticks / Constants.kTicksPerInch;
-        mPeriodicIO.right_position = mPeriodicIO.right_ticks / Constants.kTicksPerInch;
+        mPeriodicIO.left_position = mLeftMaster.getSelectedSensorPosition(0);
+        mPeriodicIO.right_position = mRightMaster.getSelectedSensorPosition(0);
 
         double deltaLeftPosition = mPeriodicIO.left_position - prevLeftPosition;
-        mPeriodicIO.left_distance += deltaLeftPosition;
-
         double deltaRightPosition = mPeriodicIO.right_position - prevRightPosition;
+
+        mPeriodicIO.left_distance += deltaLeftPosition;
         mPeriodicIO.right_distance += deltaRightPosition;
 
-        mPeriodicIO.left_velocity_per_100ms = mLeftMaster.getSelectedSensorVelocity(0) / Constants.kTicksPerInch;
-        mPeriodicIO.right_velocity_per_100ms = mRightMaster.getSelectedSensorPosition(0) / Constants.kTicksPerInch;
+        mPeriodicIO.left_velocity_per_100ms = mLeftMaster.getSelectedSensorVelocity(0);
+        mPeriodicIO.right_velocity_per_100ms = mRightMaster.getSelectedSensorVelocity(0);
 
         mPeriodicIO.heading = Rotation2d.fromDegrees(mNavx.getHeading()).rotateBy(mGyroOffset);
 
-        if(mCSVWriter != null) {
-            mCSVWriter.add(mPeriodicIO);
-        }
+        mPeriodicIO.left_temperature = mLeftMaster.getTemperature();
+        mPeriodicIO.right_temperature = mRightMaster.getTemperature();
     }
 
     @Override
-    public synchronized void writePeriodicOutputs() {
+    public void writePeriodicOutputs() {
         if(mDriveControlState == DriveControlState.OPEN_LOOP) {
-            mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward, 0.0);
-            mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward, 0.0);
-        } else if(mDriveControlState == DriveControlState.PATH_FOLLOWING) {
+            mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand,
+                DemandType.ArbitraryFeedForward, 0.0);
+            mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand,
+                DemandType.ArbitraryFeedForward, 0.0);
+        } else if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
             mLeftMaster.set(ControlMode.Velocity, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward,
                 mPeriodicIO.left_feedforward + Constants.driveVelocityKd * mPeriodicIO.left_accel / 1023.0);
-
-            mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
+            
+                mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
                 mPeriodicIO.right_feedforward + Constants.driveVelocityKd * mPeriodicIO.right_accel / 1023.0);
         }
     }
@@ -185,7 +192,7 @@ public class Drive extends Subsystem {
                 synchronized(Drive.this) {
                     stop();
                     setBrakeMode(true);
-                }
+                }                
             }
 
             @Override
@@ -202,7 +209,7 @@ public class Drive extends Subsystem {
                             break;
                         default:
                             TelemetryUtil.print("Drive in an unexpected control state", PrintStyle.ERROR, false);
-                            break;   
+                            break;
                     }
                 }
             }
@@ -210,17 +217,15 @@ public class Drive extends Subsystem {
             @Override
             public void onStop(double timestamp) {
                 stop();
-                stopLogging();
             }
-
         });
     }
 
-    public double getLeftEncoderDistance() {
+    public double getLeftEncoderPosition() {
         return mPeriodicIO.left_position;
     }
 
-    public double getRightEncoderDistance() {
+    public double getRightEncoderPosition() {
         return mPeriodicIO.right_position;
     }
 
@@ -244,18 +249,17 @@ public class Drive extends Subsystem {
         return (getRightLinearVelocity() - getLeftLinearVelocity()) / Constants.kDriveWheelTrackWidthInches;
     }
 
-
     public synchronized void setOpenLoop(DriveSignal signal) {
         if(mDriveControlState != DriveControlState.OPEN_LOOP) {
-            setBrakeMode(false);
-            TelemetryUtil.print("switching to open loop", PrintStyle.NONE, false);
+            setBrakeMode(true);
+            setStatorCurrentLimit(0);
             mDriveControlState = DriveControlState.OPEN_LOOP;
         }
 
         mPeriodicIO.left_demand = signal.getLeft();
         mPeriodicIO.right_demand = signal.getRight();
-        mPeriodicIO.left_feedforward = 0;
-        mPeriodicIO.right_feedforward = 0;
+        mPeriodicIO.left_feedforward = 0.0;
+        mPeriodicIO.right_feedforward = 0.0;
     }
 
     public synchronized void setCurvatureDrive(double throttle, double curve, boolean quickTurn) {
@@ -286,7 +290,7 @@ public class Drive extends Subsystem {
     public synchronized void setVelocity(DriveSignal signal, DriveSignal feedforward) {
         if(mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             setBrakeMode(true);
-            TelemetryUtil.print("switching to path following", PrintStyle.NONE, false);
+            setStatorCurrentLimit(35);
             mDriveControlState = DriveControlState.PATH_FOLLOWING;
         }
 
@@ -358,9 +362,26 @@ public class Drive extends Subsystem {
         }
     }
 
+    public synchronized Rotation2d getHeading() {
+        return mPeriodicIO.heading;
+    }
+
+    public synchronized void setHeading(Rotation2d heading) {
+        mGyroOffset = heading.rotateBy(Rotation2d.fromDegrees(mNavx.getHeading()).inverse());
+        mPeriodicIO.heading = heading;
+    } 
+
+    public synchronized void resetEncoders() {
+        PheonixUtil.checkError(mLeftMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs),
+            mLeftMaster.getName() + " failed to reset encoder", true);
+        PheonixUtil.checkError(mRightMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs),
+            mRightMaster.getName() + " failed to reset encoder", true);
+    }
+
+
     public synchronized void setBrakeMode(boolean enableBrake) {
         if(enableBrake != mIsBrakeMode) {
-            NeutralMode mode = enableBrake ? NeutralMode.Brake : NeutralMode.Coast;
+            NeutralMode mode = enableBrake ? NeutralMode.Brake : NeutralMode.Brake;
             mLeftMaster.setNeutralMode(mode);
             mLeftSlave.setNeutralMode(mode);
             mRightMaster.setNeutralMode(mode);
@@ -369,53 +390,23 @@ public class Drive extends Subsystem {
         }
     }
 
-    public synchronized Rotation2d getHeading() {
-        return mPeriodicIO.heading;
-    }
-
-    public synchronized void setHeading(Rotation2d heading) {
-        mGyroOffset = heading.rotateBy(Rotation2d.fromDegrees(mNavx.getHeading()).inverse());
-        mPeriodicIO.heading = heading;
-    }
-
-    public synchronized void resetEncoders() {
-        PheonixUtil.checkError(mLeftMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs),
-            "Failed to reset left drive encoder", true);
-        PheonixUtil.checkError(mRightMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs), 
-            "Failed to reset right drive encoder", true);
-        mPeriodicIO = new PeriodicIO();
-    }
-
-    public synchronized void setCurrentLimit(int amps) {
-        TalonSRXUtil.setCurrentLimit(mLeftMaster, amps);
-        TalonSRXUtil.setCurrentLimit(mLeftSlave, amps);
-        TalonSRXUtil.setCurrentLimit(mRightMaster, amps);
-        TalonSRXUtil.setCurrentLimit(mRightSlave, amps);
+    public synchronized void setStatorCurrentLimit(int amps) {
+        TalonFXUtil.setStatorCurrentLimit(mLeftMaster, amps);
+        TalonFXUtil.setStatorCurrentLimit(mLeftSlave, amps);
+        TalonFXUtil.setStatorCurrentLimit(mRightMaster, amps);
+        TalonFXUtil.setStatorCurrentLimit(mRightSlave, amps);
     }
 
     public synchronized void handleFaults() {
-        TalonSRXUtil.testFaults(mLeftMaster);
-        TalonSRXUtil.testSlaveFaults(mLeftSlave, mLeftMaster);
-        TalonSRXUtil.testFaults(mRightMaster);
-        TalonSRXUtil.testSlaveFaults(mRightSlave, mRightMaster);
+        TalonFXUtil.checkSensorFaults(mLeftMaster);
+        TalonFXUtil.checkSlaveFaults(mLeftSlave, Ports.DRIVE_LEFT_MASTER_ID);
+        TalonFXUtil.checkSensorFaults(mRightMaster);
+        TalonFXUtil.checkSlaveFaults(mRightSlave, Ports.DRIVE_RIGHT_MASTER_ID);
     }
 
-    public synchronized void startLogging() {
-        if(mCSVWriter == null) {
-            mCSVWriter = new ReflectingCSVWriter<>("/home/lvuser/DRIVE-LOGS.csv", PeriodicIO.class);
-        }
-    }
-
-    public synchronized void stopLogging() {
-        if(mCSVWriter != null) {
-            mCSVWriter.flush();
-            mCSVWriter = null;
-        }
-    }
-
-    public enum DriveControlState {
+    private enum DriveControlState {
         OPEN_LOOP,
-        PATH_FOLLOWING
+        PATH_FOLLOWING;
     }
 
     @Override
@@ -431,11 +422,16 @@ public class Drive extends Subsystem {
 
     @Override
     public boolean checkSystem() {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public void outputTelemetry() {
+        // TODO Auto-generated method stub
 
     }
+
+
+    
 }

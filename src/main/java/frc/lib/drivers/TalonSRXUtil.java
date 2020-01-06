@@ -19,7 +19,7 @@ import frc.robot.Constants;
  */
 public class TalonSRXUtil {
 
-    public static void setCurrentLimit(LazyTalonSRX talon, int amps) {
+    public static void setCurrentLimit(final LazyTalonSRX talon, int amps) {
         PheonixUtil.checkError(talon.configPeakCurrentLimit(amps, Constants.kTimeOutMs), 
                 "Failed to set peak current limit for " + talon.getName(), true);
         PheonixUtil.checkError(talon.configContinuousCurrentLimit(amps, Constants.kTimeOutMs),
@@ -29,7 +29,7 @@ public class TalonSRXUtil {
         talon.enableCurrentLimit(true);
     }
 
-    public static void testFaults(LazyTalonSRX talon) {
+    public static void testFaults(final LazyTalonSRX talon) {
         StickyFaults faults = new StickyFaults();
         PheonixUtil.checkError(talon.getStickyFaults(faults), "FAILED TO RETRIEVE FAULTS FROM " + talon.getName(), true);
         boolean hasFaults = false;

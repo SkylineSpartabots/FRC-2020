@@ -36,7 +36,7 @@ public class Constants {
 	public static final double kPathStopSteeringDistance = 0;
 	public static final double kPathFollowingGoalPosTolerance = 0;
 	public static double kMaxGoalSmoothingTime;
-	public static double kWheelDiameter;
+	public static final double kWheelDiameter = 6.0;
 	public static double driveVelocityKd;
 	public static double kPathFollowingProfileKi;
 

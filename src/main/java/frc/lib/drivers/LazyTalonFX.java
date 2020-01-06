@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018 FIRST. All Rights Reserved.                             */
+/* Copyright (c) 2018-2019 FIRST. All Rights Reserved.                        */
 /* Open Source Software - may be modified and shared by FRC teams. The code   */
 /* must be accompanied by the FIRST BSD license file in the root directory of */
 /* the project.                                                               */
@@ -7,19 +7,19 @@
 
 package frc.lib.drivers;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonFX;
 
 /**
  * Add your docs here.
  */
-public class LazyTalonSRX extends TalonSRX {
-    
+public class LazyTalonFX extends TalonFX {
+
     protected double mLastSet = Double.NaN;
-    protected ControlMode mLastControlMode = null;
+    protected TalonFXControlMode mLastControlMode = null;
     private String mName;
 
-    public LazyTalonSRX(String name, int deviceID) {
+    public LazyTalonFX(String name, int deviceID) {
         super(deviceID);
         mName = name;
     }
@@ -28,22 +28,27 @@ public class LazyTalonSRX extends TalonSRX {
         return mLastSet;
     }
 
+    public void setName(String name) {
+        mName = name;
+    }
+
     public String getName() {
         return mName;
     }
 
     @Override
-    public void set(ControlMode mode, double outputValue) {
-        if(mode != mLastControlMode || outputValue != mLastSet) {
+    public void set(TalonFXControlMode mode, double value) {
+        if(mode != mLastControlMode || value != mLastSet) {
             mLastControlMode = mode;
-            mLastSet = outputValue;
-            super.set(mLastControlMode, mLastSet);
+            mLastSet = value;
+            super.set(mode, value);
         }
     }
 
     @Override
     public String toString() {
-        return getName() + "-> Output Power: " + mLastSet;
+        // TODO Auto-generated method stub
+        return getName() + " -> Output Power: " + mLastSet; 
     }
 
 }
