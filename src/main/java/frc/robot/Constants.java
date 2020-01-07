@@ -44,4 +44,7 @@ public class Constants {
 	public static final double kGearReduction = 1.0;
 	public static final double kTicksPerInch = (kFalconPPR) / (kWheelDiameter * Math.PI);
 
+	public static final double kFalconHeatThreshold = 90;
+	public static final double kImageCaptureLatency = 0;
+
 }

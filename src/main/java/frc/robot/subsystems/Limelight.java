@@ -12,9 +12,11 @@ import java.util.List;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.geometry.Rotation2d;
 import frc.lib.vision.TargetInfo;
 import frc.robot.Constants;
+import frc.robot.RobotState;
 
 /**
  * Add your docs here.
@@ -68,7 +70,7 @@ public class Limelight extends Subsystem {
     }
 
     @Override
-    public void readPeriodicInputs() {
+    public synchronized void readPeriodicInputs() {
         mPeriodicIO.latency = mNetworkTable.getEntry("tl").getDouble(0) / 1000.0 + Constants.kImageCaptureLatency;
         mPeriodicIO.givenLedMode = (int) mNetworkTable.getEntry("ledMode").getDouble(1.0);
         mPeriodicIO.givenPipeline = (int) mNetworkTable.getEntry("pipeline").getDouble(0);
@@ -79,7 +81,7 @@ public class Limelight extends Subsystem {
     }
 
     @Override
-    public void writePeriodicOutputs() {
+    public synchronized void writePeriodicOutputs() {
         if (mPeriodicIO.givenLedMode != mPeriodicIO.ledMode ||
                 mPeriodicIO.givenPipeline != mPeriodicIO.pipeline) {
             mOutputsHaveChanged = true;
@@ -95,9 +97,43 @@ public class Limelight extends Subsystem {
         }
     }
 
+    @Override
+    public synchronized void outputTelemetry() {
+        SmartDashboard.putBoolean(mConstants.kName + ": Has Target", mSeesTarget);
+        SmartDashboard.putNumber(mConstants.kName + ": X-Offset", mPeriodicIO.xOffset);
+        SmartDashboard.putNumber(mConstants.kName + ": Y-Offset", mPeriodicIO.yOffset);
+        SmartDashboard.putNumber(mConstants.kName + ": Area", mPeriodicIO.area);
+    }
 
     public enum LedMode {
-        PIPELINE, BLINK, OFF, ON;
+        PIPELINE, OFF, BLINK, ON;
+    }
+
+    public synchronized void setLed(LedMode mode) {
+        if(mode.ordinal() != mPeriodicIO.ledMode) {
+            mPeriodicIO.ledMode = mode.ordinal();
+            mOutputsHaveChanged = true;
+        }
+    }
+
+    public synchronized void setPipeline(int pipeline) {
+        if(pipeline != mPeriodicIO.pipeline) {
+            //TODO: RobotState.getInstance().resetVision();
+            mPeriodicIO.pipeline = pipeline;
+            mOutputsHaveChanged = true;
+        }
+    }
+
+    public synchronized void triggerOutputs() {
+        mOutputsHaveChanged = true;
+    }
+
+    public synchronized int getPipeline() {
+        return mPeriodicIO.pipeline;
+    }
+
+    public synchronized boolean seesTarget() {
+        return mSeesTarget;
     }
 
     @Override
@@ -110,9 +146,4 @@ public class Limelight extends Subsystem {
         return false;
     }
 
-    @Override
-    public void outputTelemetry() {
-        
-
-    }
 }

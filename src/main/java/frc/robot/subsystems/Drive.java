@@ -130,8 +130,10 @@ public class Drive extends Subsystem {
         public Rotation2d heading = Rotation2d.identity();
         public Pose2d error = Pose2d.identity();
 
-        public double left_temperature;
-        public double right_temperature;
+        public double left_master_temperature;
+        public double left_slave_temperature;
+        public double right_master_temperature;
+        public double right_slave_temperature;
 
         //outputs
         public double left_demand;
@@ -163,8 +165,10 @@ public class Drive extends Subsystem {
 
         mPeriodicIO.heading = Rotation2d.fromDegrees(mNavx.getHeading()).rotateBy(mGyroOffset);
 
-        mPeriodicIO.left_temperature = mLeftMaster.getTemperature();
-        mPeriodicIO.right_temperature = mRightMaster.getTemperature();
+        mPeriodicIO.left_master_temperature = mLeftMaster.getTemperature();
+        mPeriodicIO.left_slave_temperature = mLeftSlave.getTemperature();
+        mPeriodicIO.right_master_temperature = mRightMaster.getTemperature();
+        mPeriodicIO.right_slave_temperature = mRightSlave.getTemperature();
     }
 
     @Override
@@ -178,7 +182,7 @@ public class Drive extends Subsystem {
             mLeftMaster.set(ControlMode.Velocity, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward,
                 mPeriodicIO.left_feedforward + Constants.driveVelocityKd * mPeriodicIO.left_accel / 1023.0);
             
-                mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
+            mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
                 mPeriodicIO.right_feedforward + Constants.driveVelocityKd * mPeriodicIO.right_accel / 1023.0);
         }
     }
@@ -420,17 +424,19 @@ public class Drive extends Subsystem {
         setOpenLoop(DriveSignal.NEUTRAL);
     }
 
-    @Override
-    public boolean checkSystem() {
-        // TODO Auto-generated method stub
-        return false;
-    }
 
     @Override
     public void outputTelemetry() {
-        // TODO Auto-generated method stub
+        
 
     }
+
+    @Override
+    public boolean checkSystem() {
+        
+        return false;
+    }
+
 
 
     

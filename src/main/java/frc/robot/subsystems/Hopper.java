@@ -10,5 +10,21 @@ package frc.robot.subsystems;
 /**
  * Add your docs here.
  */
-public class Hopper {
+public class Hopper extends Subsystem {
+
+    @Override
+    public void stop() {
+
+    }
+
+    @Override
+    public boolean checkSystem() {
+        return false;
+    }
+
+    @Override
+    public void outputTelemetry() {
+
+
+    }
 }

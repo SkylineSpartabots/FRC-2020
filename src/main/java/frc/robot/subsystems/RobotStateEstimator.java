@@ -7,7 +7,6 @@
 
 package frc.robot.subsystems;
 
-import frc.lib.geometry.Pose2d;
 import frc.lib.geometry.Rotation2d;
 import frc.lib.geometry.Twist2d;
 import frc.robot.Kinematics;

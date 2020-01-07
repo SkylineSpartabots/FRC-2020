@@ -10,5 +10,20 @@ package frc.robot.subsystems;
 /**
  * Add your docs here.
  */
-public class Intake {
+public class Intake extends Subsystem {
+
+    @Override
+    public void stop() {
+
+    }
+
+    @Override
+    public boolean checkSystem() {
+        return false;
+    }
+
+    @Override
+    public void outputTelemetry() {
+
+    }
 }
