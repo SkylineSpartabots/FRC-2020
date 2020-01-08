@@ -12,6 +12,15 @@ package frc.robot.subsystems;
  */
 public class Hopper extends Subsystem {
 
+    private static Hopper mInstance = null;
+    
+    public static Hopper getInstance() {
+        if(mInstance == null) {
+            mInstance = new Hopper();
+        }
+        return mInstance;
+    }
+    
     @Override
     public void stop() {
 

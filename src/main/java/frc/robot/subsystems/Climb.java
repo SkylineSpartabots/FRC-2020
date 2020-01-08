@@ -12,6 +12,15 @@ package frc.robot.subsystems;
  */
 public class Climb extends Subsystem {
 
+    private static Climb mInstance = null;
+
+    public static Climb getInstance() {
+        if(mInstance == null) {
+            mInstance = new Climb();
+        }
+        return mInstance;
+     }
+
     @Override
     public void stop() {
 

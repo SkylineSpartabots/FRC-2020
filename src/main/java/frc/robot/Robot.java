@@ -7,9 +7,14 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.CANifier;
+import com.ctre.phoenix.CANifier.LEDChannel;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.lib.sensors.ColorSensor;
+import frc.lib.sensors.ColorSensor.Colors;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.RobotStateEstimator;
 import frc.robot.subsystems.SubsystemManager;
@@ -27,6 +32,9 @@ public class Robot extends TimedRobot {
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
+  private ColorSensor mColorSensor;
+  private CANifier mCanifier;
+
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
@@ -36,6 +44,9 @@ public class Robot extends TimedRobot {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+
+    mColorSensor = new ColorSensor();
+    mCanifier = new CANifier(Ports.CANIFIER_ID);
 
   }
 
@@ -91,6 +102,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+    
   }
 
   /**
@@ -99,4 +111,10 @@ public class Robot extends TimedRobot {
   @Override
   public void testPeriodic() {
   }
+
+  @Override
+  public void disabledInit() {
+
+  }
 }
+

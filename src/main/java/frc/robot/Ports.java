@@ -16,4 +16,23 @@ public class Ports {
 	public static final int DRIVE_LEFT_SLAVE_ID = 0;
 	public static final int DRIVE_RIGHT_MASTER_ID = 0;
 	public static final int DRIVE_RIGHT_SLAVE_ID = 0;
+
+	public static final int INTAKE_SOLENOID_PORT = 0;
+	public static final int INTAKE_MOTOR_ID = 0;
+
+	public static final int SHOOTER_HOOD_ID = 0;
+	public static final int SHOOTER_LEFT_SHOOT_ID = 0;
+	public static final int SHOOTER_RIGHT_SHOOT_ID = 0;
+	public static final int SHOOTER_INDEX_ID = 0;
+	public static final int SHOOTER_RAMP_SOLENOID_PORT = 0;
+
+	public static final int CLIMB_LEFT_MOTOR_ID = 0;
+	public static final int CLIMB_LEFT_SOLENOID_PORT = 0;
+	public static final int CLIMB_RIGHT_MOTOR_ID = 0;
+	public static final int CLIMB_RIGHT_SOLENOID_PORT = 0;
+
+	public static final int HOPPER_LEFT_BELT = 0;
+	public static final int HOPPER_RIGHT_BELT = 0;
+	public static final int HOPPER_BALL_HOLDER = 0;
+	public static final int CANIFIER_ID = 0;
 }

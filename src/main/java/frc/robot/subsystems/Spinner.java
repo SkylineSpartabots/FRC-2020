@@ -7,10 +7,31 @@
 
 package frc.robot.subsystems;
 
+import com.revrobotics.ColorSensorV3;
+
+import edu.wpi.first.wpilibj.I2C;
+import frc.lib.sensors.ColorSensor;
+
 /**
  * Add your docs here.
  */
 public class Spinner extends Subsystem {
+
+    private static Spinner mInstance = null;
+
+    public static Spinner getInstance() {
+        if(mInstance == null) {
+            mInstance = new Spinner();
+        }
+        return mInstance;
+    }
+
+    //hardware
+    
+
+    private Spinner() {
+        //mColorSensor = new ColorSensor();
+    }
 
     @Override
     public void stop() {
