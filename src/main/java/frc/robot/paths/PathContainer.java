@@ -5,36 +5,16 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.subsystems;
+package frc.robot.paths;
+
+import frc.lib.control.Path;
 
 /**
  * Add your docs here.
  */
-public class Hopper extends Subsystem {
+public interface PathContainer {
 
-    private static Hopper mInstance = null;
-    
-    public static Hopper getInstance() {
-        if(mInstance == null) {
-            mInstance = new Hopper();
-        }
-        return mInstance;
-    }
+    Path buildPath();
 
-    
-    @Override
-    public void stop() {
-
-    }
-
-    @Override
-    public boolean checkSystem() {
-        return false;
-    }
-
-    @Override
-    public void outputTelemetry() {
-
-
-    }
+    boolean isReversed();
 }

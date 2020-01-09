@@ -21,6 +21,17 @@ public class Climb extends Subsystem {
         return mInstance;
      }
 
+
+     //hardware
+     
+
+     //hardware states
+
+
+
+
+
+
     @Override
     public void stop() {
 

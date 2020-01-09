@@ -10,7 +10,6 @@ package frc.lib.sensors;
 import com.revrobotics.ColorMatch;
 import com.revrobotics.ColorMatchResult;
 import com.revrobotics.ColorSensorV3;
-import com.revrobotics.ColorSensorV3.RawColor;
 
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
@@ -45,9 +44,7 @@ public class ColorSensor {
     public Colors getColor() {
         Color detectedColor = mColorSensor.getColor();
         ColorMatchResult match = mColorMatcher.matchClosestColor(detectedColor);
-        
-        System.out.println(mColorSensor.getProximity());
-        //System.out.println(match.confidence);
+
         if(match.color == kBlueTarget) {
             return Colors.BLUE;
         } else if (match.color == kRedTarget) {

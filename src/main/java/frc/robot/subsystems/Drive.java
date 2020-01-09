@@ -15,6 +15,7 @@ import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.control.LookAhead;
 import frc.lib.control.Path;
 import frc.lib.control.PathFollower;
@@ -408,6 +409,13 @@ public class Drive extends Subsystem {
         TalonFXUtil.checkSlaveFaults(mRightSlave, Ports.DRIVE_RIGHT_MASTER_ID);
     }
 
+    public synchronized boolean isDriveOverheating() {
+        return mPeriodicIO.left_master_temperature > Constants.kFalconHeatThreshold
+            || mPeriodicIO.left_slave_temperature > Constants.kFalconHeatThreshold
+            || mPeriodicIO.right_master_temperature > Constants.kFalconHeatThreshold
+            || mPeriodicIO.right_slave_temperature > Constants.kFalconHeatThreshold;
+    }
+
     private enum DriveControlState {
         OPEN_LOOP,
         PATH_FOLLOWING;
@@ -427,8 +435,7 @@ public class Drive extends Subsystem {
 
     @Override
     public void outputTelemetry() {
-        
-
+        SmartDashboard.putBoolean("Is Drive Overheathing", isDriveOverheating());
     }
 
     @Override

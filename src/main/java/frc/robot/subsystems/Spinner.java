@@ -30,7 +30,6 @@ public class Spinner extends Subsystem {
     
 
     private Spinner() {
-        //mColorSensor = new ColorSensor();
     }
 
     @Override
