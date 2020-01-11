@@ -16,4 +16,5 @@ public class Ports {
 	public static final int DRIVE_LEFT_SLAVE_ID = 0;
 	public static final int DRIVE_RIGHT_MASTER_ID = 0;
 	public static final int DRIVE_RIGHT_SLAVE_ID = 0;
+	public static final int SHOOT_MOTOR_ID = 0;
 }
