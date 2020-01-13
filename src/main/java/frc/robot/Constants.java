@@ -7,6 +7,9 @@
 
 package frc.robot;
 
+import frc.lib.geometry.Rotation2d;
+import frc.robot.subsystems.Limelight.LimelightConstants;
+
 /**
  * Add your docs here.
  */
@@ -45,6 +48,28 @@ public class Constants {
 	public static final double kTicksPerInch = (kFalconPPR) / (kWheelDiameter * Math.PI);
 
 	public static final double kFalconHeatThreshold = 75;
-	public static final double kImageCaptureLatency = 0;
+	
+
+
+	public static final double kHorizontalFOV = 59.6; // degrees
+    public static final double kVerticalFOV = 49.7; // degrees
+    public static final double kVPW = 2.0 * Math.tan(Math.toRadians(kHorizontalFOV / 2.0));
+    public static final double kVPH = 2.0 * Math.tan(Math.toRadians(kVerticalFOV / 2.0));
+	public static final double kImageCaptureLatency = 11.0 / 1000.0;;
+
+
+	public static final double kLensHeight = 11.75;
+	public static final double kLensHorizontalAngle = 35.0;
+	public static final double kTargetHeight = 98.5;
+
+
+	public static final LimelightConstants kShooterLimelightConstants = new LimelightConstants();
+
+	static {
+		kShooterLimelightConstants.kName = "Shooter Limelight";
+		kShooterLimelightConstants.kHeight = 12;
+		kShooterLimelightConstants.kTableName = "limelight";
+		kShooterLimelightConstants.kHorizontalToLens = Rotation2d.fromDegrees(38.0);
+	}
 
 }

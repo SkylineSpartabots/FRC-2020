@@ -13,8 +13,10 @@ import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.control.LookAhead;
 import frc.lib.control.Path;
@@ -65,6 +67,7 @@ public class Drive extends Subsystem {
     //controllers
     private PathFollower mPathFollower;
     private Path mCurrentPath;
+    private DifferentialDrive mOpenLoopController;
 
     //control states
     private DriveControlState mDriveControlState;
@@ -257,7 +260,7 @@ public class Drive extends Subsystem {
     public synchronized void setOpenLoop(DriveSignal signal) {
         if(mDriveControlState != DriveControlState.OPEN_LOOP) {
             setBrakeMode(true);
-            setStatorCurrentLimit(0);
+            //setStatorCurrentLimit(0);
             mDriveControlState = DriveControlState.OPEN_LOOP;
         }
 
@@ -268,25 +271,25 @@ public class Drive extends Subsystem {
     }
 
     public synchronized void setCurvatureDrive(double throttle, double curve, boolean quickTurn) {
-        if(Util.epsilonEquals(throttle, 0.0, 0.04)) {
+        if (Util.epsilonEquals(throttle, 0.0, 0.04)) {
             throttle = 0.0;
         }
 
-        if(Util.epsilonEquals(curve, 0.0, 0.04)) {
-            curve = 0;
+        if (Util.epsilonEquals(curve, 0.0, 0.035)) {
+            curve = 0.0;
         }
 
-        final double kCurveGain = 0.05;
-        final double kCurveNonLinearity = 0.05;
-        final double denominator = Math.sin(Math.PI / 2.0 * kCurveNonLinearity);
-
-        if(!quickTurn) {
-            curve = Math.sin(Math.PI / 2.0 * kCurveNonLinearity * curve);
-            curve = Math.sin(Math.PI / 2.0 * kCurveNonLinearity * curve);
+        final double kWheelGain = 0.0005;
+        final double kWheelNonlinearity = 0.0005;
+        final double denominator = Math.sin(Math.PI / 2.0 * kWheelNonlinearity);
+        // Apply a sin function that's scaled to make it feel better.
+        if (!quickTurn) {
+            curve = Math.sin(Math.PI / 2.0 * kWheelNonlinearity * curve);
+            curve = Math.sin(Math.PI / 2.0 * kWheelNonlinearity * curve);
             curve = curve / (denominator * denominator) * Math.abs(throttle);
         }
 
-        curve *= kCurveGain;
+        curve *= kWheelGain;
         DriveSignal signal = Kinematics.inverseKinematics(new Twist2d(throttle, 0.0, curve));
         double scaling_factor = Math.max(1.0, Math.max(Math.abs(signal.getLeft()), Math.abs(signal.getRight())));
         setOpenLoop(new DriveSignal(signal.getLeft() / scaling_factor, signal.getRight() / scaling_factor));

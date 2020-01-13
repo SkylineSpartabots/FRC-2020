@@ -37,5 +37,10 @@ public class Util {
     public static double limit(double v, double maxMagnitude) {
         return limit(v, -maxMagnitude, maxMagnitude);
     }
+
+    public static double deadBand(double val, double deadBand) {
+        return (Math.abs(val) > Math.abs(deadBand)) ? val : 0.0;
+    }
+
 }
 

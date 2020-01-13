@@ -8,12 +8,16 @@
 package frc.robot.subsystems;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.geometry.Rotation2d;
+import frc.lib.geometry.Translation2d;
+import frc.lib.util.Util;
 import frc.lib.vision.TargetInfo;
 import frc.robot.Constants;
 import frc.robot.RobotState;
@@ -109,6 +113,10 @@ public class Limelight extends Subsystem {
         PIPELINE, OFF, BLINK, ON;
     }
 
+    public synchronized double getYOffset() {
+        return mPeriodicIO.yOffset;
+    }
+
     public synchronized void setLed(LedMode mode) {
         if(mode.ordinal() != mPeriodicIO.ledMode) {
             mPeriodicIO.ledMode = mode.ordinal();
@@ -135,6 +143,91 @@ public class Limelight extends Subsystem {
     public synchronized boolean seesTarget() {
         return mSeesTarget;
     }
+
+    public synchronized double getDistance() {
+        return (Constants.kTargetHeight - mConstants.kHeight) / 
+            Math.tan(Math.toRadians(mConstants.kHorizontalToLens.getDegrees() - mPeriodicIO.yOffset));
+    }
+
+    public synchronized List<TargetInfo> getTarget() {
+        List<TargetInfo> targets = getRawTargetInfos();
+        if(seesTarget() && targets != null) {
+            return targets;
+        }
+
+        return null;
+    }
+
+    public synchronized List<TargetInfo> getRawTargetInfos() {
+        List<double[]> corners = getTopCorners();
+        if(corners == null) {
+            return null;
+        }
+
+        double slope = 1.0;
+        if (Math.abs(corners.get(1)[0] - corners.get(0)[0]) > Util.kEpsilon) {
+            slope = (corners.get(1)[1] - corners.get(0)[1]) /
+                    (corners.get(1)[0] - corners.get(0)[0]);
+        }
+
+        mTargets.clear();
+        for (int i = 0; i < 2; ++i) {
+            // Average of y and z;
+            double y_pixels = corners.get(i)[0];
+            double z_pixels = corners.get(i)[1];
+
+            // Redefine to robot frame of reference.
+            double nY = -((y_pixels - 160.0) / 160.0);
+            double nZ = -((z_pixels - 120.0) / 120.0);
+
+            double y = Constants.kVPW / 2 * nY;
+            double z = Constants.kVPH / 2 * nZ;
+
+            TargetInfo target = new TargetInfo(y, z);
+            target.setSkew(slope);
+            mTargets.add(target);
+        }
+
+        return mTargets;
+    }
+
+    private List<double[]> getTopCorners() {
+        double[] xCorners = mNetworkTable.getEntry("tcornx").getDoubleArray(mZeroArray);
+        double[] yCorners = mNetworkTable.getEntry("tcorny").getDoubleArray(mZeroArray);
+        mSeesTarget = mNetworkTable.getEntry("tv").getDouble(0.0) == 1.0;
+        
+        if(!mSeesTarget || Arrays.equals(xCorners, mZeroArray) || Arrays.equals(yCorners, mZeroArray)
+            || xCorners.length != 4 || yCorners.length != 4) {
+                return null;
+        }
+
+        return extractCornersFromBoundingBoxes(xCorners, yCorners);
+    }
+
+    private static final Comparator<Translation2d> xSort = Comparator.comparingDouble(Translation2d::x);
+    private static final Comparator<Translation2d> ySort = Comparator.comparingDouble(Translation2d::y);
+
+    public static List<double[]> extractCornersFromBoundingBoxes(double[] xCorners, double[] yCorners) {
+        List<Translation2d> corners = new ArrayList<>();
+        for(int i = 0; i < xCorners.length; i++) {
+            corners.add(new Translation2d(xCorners[i], yCorners[i]));
+        }
+
+        corners.sort(xSort);
+
+        List<Translation2d> leftSide = corners.subList(0, 2);
+        List<Translation2d> rightSide = corners.subList(2, 4);
+
+        leftSide.sort(ySort);
+        rightSide.sort(ySort);
+
+        Translation2d leftCorner = leftSide.get(0);
+        Translation2d rightCorner = rightSide.get(0);
+
+        return List.of(new double[]{leftCorner.x(), leftCorner.y()}, 
+            new double[]{rightCorner.x(), rightCorner.y()});
+    }
+
 
     @Override
     public void stop() {

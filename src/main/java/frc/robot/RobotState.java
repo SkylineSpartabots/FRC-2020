@@ -7,15 +7,22 @@
 
 package frc.robot;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.geometry.Pose2d;
 import frc.lib.geometry.Rotation2d;
+import frc.lib.geometry.Translation2d;
 import frc.lib.geometry.Twist2d;
 import frc.lib.util.InterpolatingDouble;
 import frc.lib.util.InterpolatingTreeMap;
+import frc.lib.util.MovingAverageTwist2d;
+import frc.lib.vision.GoalTracker;
+import frc.lib.vision.TargetInfo;
 import frc.robot.subsystems.Drive;
+import frc.robot.subsystems.Limelight;
 
 public class RobotState {
     private static RobotState mInstance;
@@ -32,7 +39,11 @@ public class RobotState {
     private InterpolatingTreeMap<InterpolatingDouble, Pose2d> field_to_vehicle_;
     private Twist2d vehicle_velocity_predicted_;
     private Twist2d vehicle_velocity_measured_;
+    private MovingAverageTwist2d vehicle_velocity_measured_filtered_;
     private double distance_driven_;
+
+    private GoalTracker goal_vision_target_;
+    List<Translation2d> mCameraToVisionTargetGoal = new ArrayList<>();
 
     private RobotState() {
         reset(0, new Pose2d());
@@ -45,6 +56,7 @@ public class RobotState {
         Drive.getInstance().setHeading(inital_field_to_vehicle.getRotation());
         vehicle_velocity_predicted_ = Twist2d.identity();
         vehicle_velocity_measured_ = Twist2d.identity();
+        vehicle_velocity_measured_filtered_ = new MovingAverageTwist2d(25);
         distance_driven_ = 0.0;
     }
 
@@ -69,14 +81,21 @@ public class RobotState {
         field_to_vehicle_.put(new InterpolatingDouble(timestamp), observation);
     }
 
-    public synchronized void addObservations(double timestamp, Twist2d measured_velocity,
+    public synchronized void addObservations(double timestamp, Twist2d displacement, Twist2d measured_velocity,
                                              Twist2d predicted_velocity) {
+        distance_driven_ += displacement.dx;
         addFieldToVehicleObservation(timestamp,
-                Kinematics.integrateForwardKinematics(getLatestFieldToVehicle().getValue(), measured_velocity));
+                Kinematics.integrateForwardKinematics(getLatestFieldToVehicle().getValue(), displacement));
         vehicle_velocity_measured_ = measured_velocity;
+        if (Math.abs(vehicle_velocity_measured_.dtheta) < 2.0 * Math.PI) {
+            vehicle_velocity_measured_filtered_.add(vehicle_velocity_measured_);
+        } else {
+            vehicle_velocity_measured_filtered_.add(new Twist2d(vehicle_velocity_measured_.dx, vehicle_velocity_measured_.dy, 0.0));
+        }
         vehicle_velocity_predicted_ = predicted_velocity;
     }
 
+    //TODO: remove?
     public synchronized Twist2d generateOdometryFromSensors(double left_encoder_delta_distance, double
             right_encoder_delta_distance, Rotation2d current_gyro_angle) {
         final Pose2d last_measurement = getLatestFieldToVehicle().getValue();
@@ -98,6 +117,19 @@ public class RobotState {
     public synchronized Twist2d getMeasuredVelocity() {
         return vehicle_velocity_measured_;
     }
+
+    public synchronized Twist2d getSmoothedVelocity() {
+        return vehicle_velocity_measured_filtered_.getAverage();
+    }
+
+    public synchronized void resetVision() {
+        goal_vision_target_.reset();
+    }
+
+    /*public Translation2d getCameraToVisionTargetPose(TargetInfo target, Limelight source) {
+        Translation2d xz_plane_translation = new Translation2d(target.getX(), target.getZ()).rotateBy(source.getHorizontalPlaneToLens());
+
+    }*/
 
     public void outputToSmartDashboard() {
         Pose2d odometry = getLatestFieldToVehicle().getValue();

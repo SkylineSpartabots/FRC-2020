@@ -7,9 +7,20 @@
 
 package frc.robot;
 
+import java.util.Arrays;
+
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.lib.controllers.Xbox;
+import frc.lib.util.CrashTracker;
+import frc.robot.loops.Looper;
+import frc.robot.subsystems.Drive;
+import frc.robot.subsystems.Limelight;
+import frc.robot.subsystems.SubsystemManager;
 
 
 /**
@@ -24,6 +35,12 @@ public class Robot extends TimedRobot {
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
+  //private static Drive mDrive;
+  private static Limelight mLimelight;
+  private static SubsystemManager subsystems;
+  private NetworkTable limelightTable;
+  private Looper enabledLooper, disabledLooper;
+  private Xbox mDriveController;
 
 
   /**
@@ -35,8 +52,19 @@ public class Robot extends TimedRobot {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+    enabledLooper = new Looper();
+    disabledLooper = new Looper(); 
+    mLimelight = new Limelight(Constants.kShooterLimelightConstants);
+    //mDrive = Drive.getInstance();
 
+    subsystems = SubsystemManager.getInstance();
+    mDriveController = new Xbox(0);
+    subsystems.setSubsystems(mLimelight);
 
+    subsystems.registerEnabledLoops(enabledLooper);
+    subsystems.registerDisabledLoops(disabledLooper);
+
+    //mDrive.zeroSensors();
   }
 
   /**
@@ -49,7 +77,8 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
-    
+    SmartDashboard.putNumber("Distance Vision", mLimelight.getDistance());
+    SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
   }
 
   /**
@@ -68,6 +97,7 @@ public class Robot extends TimedRobot {
     m_autoSelected = m_chooser.getSelected();
     // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
     System.out.println("Auto selected: " + m_autoSelected);
+    
   }
 
   /**
@@ -86,11 +116,38 @@ public class Robot extends TimedRobot {
     }
   }
 
+  @Override
+  public void teleopInit() {
+    try {
+      disabledLooper.stop();
+      enabledLooper.start();
+      //SmartDashboard.putBoolean("Auto", false);
+
+      //needs to be commented out
+      //drive.zeroSensors();
+      //elevator.zeroSensors();
+      
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+    }
+  }
+
   /**
    * This function is called periodically during operator control.
    */
   @Override
   public void teleopPeriodic() {
+    try {
+      mDriveController.update();
+
+      //mDrive.setCurvatureDrive(mDriveController.getY(Hand.kLeft), -mDriveController.getX(Hand.kRight), false);
+      //powerCellFollow();
+
+      
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
     
   }
 
@@ -103,7 +160,8 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledInit() {
-
+    enabledLooper.stop();
+    disabledLooper.start();
   }
 }
 
