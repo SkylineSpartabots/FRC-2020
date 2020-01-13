@@ -15,7 +15,7 @@ import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
 
 /**
- * Add your docs here.
+ * Add your docs here. 
  */
 public class ColorSensor {
 
