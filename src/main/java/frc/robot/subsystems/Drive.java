@@ -40,7 +40,6 @@ import frc.robot.RobotState;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 
-
 /**
  * Add your docs here.
  */
@@ -49,54 +48,53 @@ public class Drive extends Subsystem {
     private static Drive mInstance = null;
 
     public static Drive getInstance() {
-        if(mInstance == null) {
+        if (mInstance == null) {
             mInstance = new Drive();
         }
         return mInstance;
     }
 
-    //hardware
+    // hardware
     private final LazyTalonFX mLeftMaster, mLeftSlave, mRightMaster, mRightSlave;
     private final Navx mNavx;
 
-    //hardware states
+    // hardware states
     private boolean mIsBrakeMode;
     private Rotation2d mGyroOffset = Rotation2d.identity();
     private PeriodicIO mPeriodicIO;
 
-    //controllers
+    // controllers
     private PathFollower mPathFollower;
     private Path mCurrentPath;
     private DifferentialDrive mOpenLoopController;
 
-    //control states
+    // control states
     private DriveControlState mDriveControlState;
 
     private synchronized void configureMotorForDrive(LazyTalonFX falcon, InvertType inversion) {
         falcon.setInverted(inversion);
-        PheonixUtil.checkError(falcon.configOpenloopRamp(0.3, Constants.kTimeOutMs), falcon.getName()
-         + " failed to set open loop ramp rate", true);
+        PheonixUtil.checkError(falcon.configOpenloopRamp(0.3, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set open loop ramp rate", true);
 
-        PheonixUtil.checkError(falcon.configClosedloopRamp(0.0, Constants.kTimeOutMs), falcon.getName()
-         + " failed to set closed loop ramp rate", true);
+        PheonixUtil.checkError(falcon.configClosedloopRamp(0.0, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set closed loop ramp rate", true);
 
-        PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs), falcon.getName() 
-         + " failed to set voltage compensation", true);
-  
-        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 
-            35, 0, 0)), falcon.getName() + " failed to set output current limit", true);
+        PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set voltage compensation", true);
 
-        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true,
-             35, 0, 0)), falcon.getName() + " failed to set input current limit", true);
+        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 35, 0, 0)),
+                falcon.getName() + " failed to set output current limit", true);
+
+        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true, 35, 0, 0)),
+                falcon.getName() + " failed to set input current limit", true);
     }
 
     private synchronized void configureMasterForDrive(LazyTalonFX falcon, InvertType inversion, boolean sensorPhase) {
         configureMotorForDrive(falcon, inversion);
-        PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048/Constants.kWheelDiameter) / Math.PI, 0, Constants.kTimeOutMs),
-            falcon.getName() + " failed to set sensor coeffecient", true);
+        PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048 / Constants.kWheelDiameter) / Math.PI, 0,
+                Constants.kTimeOutMs), falcon.getName() + " failed to set sensor coeffecient", true);
         falcon.setSensorPhase(sensorPhase);
     }
-    
 
     private Drive() {
         mPeriodicIO = new PeriodicIO();
@@ -104,13 +102,15 @@ public class Drive extends Subsystem {
         mLeftMaster = TalonFXFactory.createDefaultFalcon("Drive Left Master", Ports.DRIVE_LEFT_MASTER_ID);
         configureMasterForDrive(mLeftMaster, InvertType.None, false);
 
-        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
+        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID,
+                Ports.DRIVE_LEFT_MASTER_ID);
         configureMotorForDrive(mLeftSlave, InvertType.FollowMaster);
 
         mRightMaster = TalonFXFactory.createDefaultFalcon("Drive Right Master", Ports.DRIVE_RIGHT_MASTER_ID);
         configureMasterForDrive(mRightMaster, InvertType.InvertMotorOutput, false);
 
-        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID, Ports.DRIVE_RIGHT_MASTER_ID);
+        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID,
+                Ports.DRIVE_RIGHT_MASTER_ID);
         configureMotorForDrive(mRightSlave, InvertType.FollowMaster);
 
         mNavx = Navx.getInstance();
@@ -121,9 +121,8 @@ public class Drive extends Subsystem {
         setOpenLoop(DriveSignal.NEUTRAL);
     }
 
-
     private static class PeriodicIO {
-        //inputs
+        // inputs
         public double timestamp;
         public double left_position;
         public double right_position;
@@ -139,7 +138,7 @@ public class Drive extends Subsystem {
         public double right_master_temperature;
         public double right_slave_temperature;
 
-        //outputs
+        // outputs
         public double left_demand;
         public double right_demand;
         public double left_accel;
@@ -177,17 +176,15 @@ public class Drive extends Subsystem {
 
     @Override
     public void writePeriodicOutputs() {
-        if(mDriveControlState == DriveControlState.OPEN_LOOP) {
-            mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand,
-                DemandType.ArbitraryFeedForward, 0.0);
-            mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand,
-                DemandType.ArbitraryFeedForward, 0.0);
+        if (mDriveControlState == DriveControlState.OPEN_LOOP) {
+            mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward, 0.0);
+            mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward, 0.0);
         } else if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
             mLeftMaster.set(ControlMode.Velocity, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward,
-                mPeriodicIO.left_feedforward + Constants.driveVelocityKd * mPeriodicIO.left_accel / 1023.0);
-            
+                    mPeriodicIO.left_feedforward + Constants.driveVelocityKd * mPeriodicIO.left_accel / 1023.0);
+
             mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
-                mPeriodicIO.right_feedforward + Constants.driveVelocityKd * mPeriodicIO.right_accel / 1023.0);
+                    mPeriodicIO.right_feedforward + Constants.driveVelocityKd * mPeriodicIO.right_accel / 1023.0);
         }
     }
 
@@ -197,27 +194,27 @@ public class Drive extends Subsystem {
 
             @Override
             public void onStart(double timestamp) {
-                synchronized(Drive.this) {
+                synchronized (Drive.this) {
                     stop();
                     setBrakeMode(true);
-                }                
+                }
             }
 
             @Override
             public void onLoop(double timestamp) {
-                synchronized(Drive.this) {
+                synchronized (Drive.this) {
                     handleFaults();
-                    switch(mDriveControlState) {
-                        case OPEN_LOOP:
-                            break;
-                        case PATH_FOLLOWING:
-                            if(mPathFollower != null) {
-                                updatePathFollower(timestamp);
-                            }
-                            break;
-                        default:
-                            TelemetryUtil.print("Drive in an unexpected control state", PrintStyle.ERROR, false);
-                            break;
+                    switch (mDriveControlState) {
+                    case OPEN_LOOP:
+                        break;
+                    case PATH_FOLLOWING:
+                        if (mPathFollower != null) {
+                            updatePathFollower(timestamp);
+                        }
+                        break;
+                    default:
+                        TelemetryUtil.print("Drive in an unexpected control state", PrintStyle.ERROR, false);
+                        break;
                     }
                 }
             }
@@ -258,9 +255,9 @@ public class Drive extends Subsystem {
     }
 
     public synchronized void setOpenLoop(DriveSignal signal) {
-        if(mDriveControlState != DriveControlState.OPEN_LOOP) {
+        if (mDriveControlState != DriveControlState.OPEN_LOOP) {
             setBrakeMode(true);
-            //setStatorCurrentLimit(0);
+            // setStatorCurrentLimit(0);
             mDriveControlState = DriveControlState.OPEN_LOOP;
         }
 
@@ -270,33 +267,107 @@ public class Drive extends Subsystem {
         mPeriodicIO.right_feedforward = 0.0;
     }
 
+    private double mQuickStopAccumulator;
     public synchronized void setCurvatureDrive(double throttle, double curve, boolean quickTurn) {
-        if (Util.epsilonEquals(throttle, 0.0, 0.04)) {
-            throttle = 0.0;
+        throttle = Util.limit(throttle, -1.0, 1.0);
+        throttle = Util.deadBand(throttle, 0.04);
+
+        curve = Util.limit(curve, -1.0, 1.0);
+        curve = Util.deadBand(curve, 0.04);
+
+        double angularPower;
+        boolean overPower;
+
+        if (quickTurn) {
+            if (Math.abs(throttle) < Constants.kQuickStopThreshold) {
+                mQuickStopAccumulator = (1 - Constants.kQuickStopAlpha) * mQuickStopAccumulator
+                        + Constants.kQuickStopAlpha * Util.limit(curve, -1.0, 1.0) * 2;
+            }
+            overPower = true;
+            angularPower = curve;
+        } else {
+            overPower = false;
+            angularPower = Math.abs(throttle) * curve - mQuickStopAccumulator;
+
+            if (mQuickStopAccumulator > 1) {
+                mQuickStopAccumulator -= 1;
+            } else if (mQuickStopAccumulator < -1) {
+                mQuickStopAccumulator += 1;
+            } else {
+                mQuickStopAccumulator = 0.0;
+            }
         }
 
-        if (Util.epsilonEquals(curve, 0.0, 0.035)) {
-            curve = 0.0;
+        double leftMotorOutput = throttle + angularPower;
+        double rightMotorOutput = throttle - angularPower;
+
+        // If rotation is overpowered, reduce both outputs to within acceptable range
+        if (overPower) {
+            if (leftMotorOutput > 1.0) {
+                rightMotorOutput -= leftMotorOutput - 1.0;
+                leftMotorOutput = 1.0;
+            } else if (rightMotorOutput > 1.0) {
+                leftMotorOutput -= rightMotorOutput - 1.0;
+                rightMotorOutput = 1.0;
+            } else if (leftMotorOutput < -1.0) {
+                rightMotorOutput -= leftMotorOutput + 1.0;
+                leftMotorOutput = -1.0;
+            } else if (rightMotorOutput < -1.0) {
+                leftMotorOutput -= rightMotorOutput + 1.0;
+                rightMotorOutput = -1.0;
+            }
         }
 
-        final double kWheelGain = 0.0005;
-        final double kWheelNonlinearity = 0.0005;
-        final double denominator = Math.sin(Math.PI / 2.0 * kWheelNonlinearity);
-        // Apply a sin function that's scaled to make it feel better.
-        if (!quickTurn) {
-            curve = Math.sin(Math.PI / 2.0 * kWheelNonlinearity * curve);
-            curve = Math.sin(Math.PI / 2.0 * kWheelNonlinearity * curve);
-            curve = curve / (denominator * denominator) * Math.abs(throttle);
+        // Normalize the wheel speeds
+        double maxMagnitude = Math.max(Math.abs(leftMotorOutput), Math.abs(rightMotorOutput));
+        if (maxMagnitude > 1.0) {
+            leftMotorOutput /= maxMagnitude;
+            rightMotorOutput /= maxMagnitude;
         }
 
-        curve *= kWheelGain;
-        DriveSignal signal = Kinematics.inverseKinematics(new Twist2d(throttle, 0.0, curve));
-        double scaling_factor = Math.max(1.0, Math.max(Math.abs(signal.getLeft()), Math.abs(signal.getRight())));
-        setOpenLoop(new DriveSignal(signal.getLeft() / scaling_factor, signal.getRight() / scaling_factor));
+        setOpenLoop(new DriveSignal(leftMotorOutput, rightMotorOutput));
+    }
+
+    public synchronized void setArcadeDrive(double throttle, double turn) {
+        throttle = Util.limit(throttle, -1, 1);
+        throttle = Util.deadBand(throttle, 0.04);
+
+        turn = Util.limit(turn, -1, 1);
+        turn = Util.deadBand(turn, 0.04);
+
+        throttle = Math.copySign(throttle * throttle, throttle);
+        turn = Math.copySign(turn * turn, turn);
+
+        double leftMotorOutput;
+        double rightMotorOutput;
+
+        double maxInput = Math.copySign(Math.max(Math.abs(throttle), Math.abs(turn)), throttle);
+
+        if (throttle >= 0.0) {
+            // First quadrant, else second quadrant
+            if (turn >= 0.0) {
+                leftMotorOutput = maxInput;
+                rightMotorOutput = throttle - turn;
+            } else {
+                leftMotorOutput = throttle + turn;
+                rightMotorOutput = maxInput;
+            }
+        } else {
+            // Third quadrant, else fourth quadrant
+            if (turn >= 0.0) {
+                leftMotorOutput = throttle + turn;
+                rightMotorOutput = maxInput;
+            } else {
+                leftMotorOutput = maxInput;
+                rightMotorOutput = throttle - turn;
+            }
+        }
+
+        setOpenLoop(new DriveSignal(Util.limit(leftMotorOutput, -1.0, 1.0), Util.limit(rightMotorOutput, -1.0, 1.0)));
     }
 
     public synchronized void setVelocity(DriveSignal signal, DriveSignal feedforward) {
-        if(mDriveControlState != DriveControlState.PATH_FOLLOWING) {
+        if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             setBrakeMode(true);
             setStatorCurrentLimit(35);
             mDriveControlState = DriveControlState.PATH_FOLLOWING;
@@ -309,17 +380,18 @@ public class Drive extends Subsystem {
     }
 
     public synchronized void setDrivePath(Path path, boolean reversed) {
-        if(mCurrentPath != path || mDriveControlState != DriveControlState.PATH_FOLLOWING) {
+        if (mCurrentPath != path || mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             RobotState.getInstance().resetDistanceDriven();
-            mPathFollower = new PathFollower(path, reversed, new PathFollower.Parameters(
-                new LookAhead(Constants.kMinLookAhead, Constants.kMaxLookAhead, Constants.kMinLookAheadSpeed, 
-                    Constants.kMaxLookAheadSpeed), 
-                Constants.kInertiaSteeringGain, Constants.kPathFollowingProfileKp,
-                Constants.kPathFollowingProfileKi, Constants.kPathFollowingProfileKv,
-                Constants.kPathFollowingProfileKffv, Constants.kPathFollowingProfileKffa,
-                Constants.kPathFollowingProfileKs, Constants.kPathFollowingMaxVel,
-                Constants.kPathFollowingMaxAccel, Constants.kPathFollowingGoalPosTolerance,
-                Constants.kPathFollowingGoalVelTolerance, Constants.kPathStopSteeringDistance));
+            mPathFollower = new PathFollower(path, reversed,
+                    new PathFollower.Parameters(
+                            new LookAhead(Constants.kMinLookAhead, Constants.kMaxLookAhead,
+                                    Constants.kMinLookAheadSpeed, Constants.kMaxLookAheadSpeed),
+                            Constants.kInertiaSteeringGain, Constants.kPathFollowingProfileKp,
+                            Constants.kPathFollowingProfileKi, Constants.kPathFollowingProfileKv,
+                            Constants.kPathFollowingProfileKffv, Constants.kPathFollowingProfileKffa,
+                            Constants.kPathFollowingProfileKs, Constants.kPathFollowingMaxVel,
+                            Constants.kPathFollowingMaxAccel, Constants.kPathFollowingGoalPosTolerance,
+                            Constants.kPathFollowingGoalVelTolerance, Constants.kPathStopSteeringDistance));
             mDriveControlState = DriveControlState.PATH_FOLLOWING;
             mCurrentPath = path;
         } else {
@@ -328,7 +400,7 @@ public class Drive extends Subsystem {
     }
 
     public synchronized boolean isDoneWithPath() {
-        if(mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
+        if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             return mPathFollower.isFinished();
         }
         TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
@@ -336,23 +408,23 @@ public class Drive extends Subsystem {
     }
 
     public synchronized void forceDoneWithPath() {
-        if(mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
+        if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             mPathFollower.forceFinish();
         }
-        TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false); 
+        TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
     }
 
     private void updatePathFollower(double timestamp) {
-        if(mDriveControlState == DriveControlState.PATH_FOLLOWING) {
+        if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
             RobotState robot_state = RobotState.getInstance();
             Pose2d field_to_vehicle = robot_state.getLatestFieldToVehicle().getValue();
             Twist2d command = mPathFollower.update(timestamp, field_to_vehicle, robot_state.getDistanceDriven(),
-                 robot_state.getPredictedVelocity().dx);
-            if(!mPathFollower.isFinished()) {
+                    robot_state.getPredictedVelocity().dx);
+            if (!mPathFollower.isFinished()) {
                 DriveSignal setpoint = Kinematics.inverseKinematics(command);
                 setVelocity(setpoint, new DriveSignal(0, 0));
             } else {
-                if(!mPathFollower.isForceFinished()) {
+                if (!mPathFollower.isForceFinished()) {
                     setVelocity(new DriveSignal(0, 0), new DriveSignal(0, 0));
                 }
             }
@@ -362,7 +434,7 @@ public class Drive extends Subsystem {
     }
 
     public synchronized boolean hasPassedMarker(String marker) {
-        if(mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
+        if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             return mPathFollower.hasPassedMarker(marker);
         } else {
             TelemetryUtil.print("Drive is not in a path following state", PrintStyle.NONE, false);
@@ -377,18 +449,17 @@ public class Drive extends Subsystem {
     public synchronized void setHeading(Rotation2d heading) {
         mGyroOffset = heading.rotateBy(Rotation2d.fromDegrees(mNavx.getHeading()).inverse());
         mPeriodicIO.heading = heading;
-    } 
+    }
 
     public synchronized void resetEncoders() {
         PheonixUtil.checkError(mLeftMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs),
-            mLeftMaster.getName() + " failed to reset encoder", true);
+                mLeftMaster.getName() + " failed to reset encoder", true);
         PheonixUtil.checkError(mRightMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs),
-            mRightMaster.getName() + " failed to reset encoder", true);
+                mRightMaster.getName() + " failed to reset encoder", true);
     }
 
-
     public synchronized void setBrakeMode(boolean enableBrake) {
-        if(enableBrake != mIsBrakeMode) {
+        if (enableBrake != mIsBrakeMode) {
             NeutralMode mode = enableBrake ? NeutralMode.Brake : NeutralMode.Brake;
             mLeftMaster.setNeutralMode(mode);
             mLeftSlave.setNeutralMode(mode);
@@ -414,14 +485,13 @@ public class Drive extends Subsystem {
 
     public synchronized boolean isDriveOverheating() {
         return mPeriodicIO.left_master_temperature > Constants.kFalconHeatThreshold
-            || mPeriodicIO.left_slave_temperature > Constants.kFalconHeatThreshold
-            || mPeriodicIO.right_master_temperature > Constants.kFalconHeatThreshold
-            || mPeriodicIO.right_slave_temperature > Constants.kFalconHeatThreshold;
+                || mPeriodicIO.left_slave_temperature > Constants.kFalconHeatThreshold
+                || mPeriodicIO.right_master_temperature > Constants.kFalconHeatThreshold
+                || mPeriodicIO.right_slave_temperature > Constants.kFalconHeatThreshold;
     }
 
     private enum DriveControlState {
-        OPEN_LOOP,
-        PATH_FOLLOWING;
+        OPEN_LOOP, PATH_FOLLOWING;
     }
 
     @Override
@@ -435,7 +505,6 @@ public class Drive extends Subsystem {
         setOpenLoop(DriveSignal.NEUTRAL);
     }
 
-
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Is Drive Overheathing", isDriveOverheating());
@@ -443,11 +512,8 @@ public class Drive extends Subsystem {
 
     @Override
     public boolean checkSystem() {
-        
+
         return false;
     }
 
-
-
-    
 }

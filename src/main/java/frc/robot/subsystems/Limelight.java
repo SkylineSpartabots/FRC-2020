@@ -20,7 +20,6 @@ import frc.lib.geometry.Translation2d;
 import frc.lib.util.Util;
 import frc.lib.vision.TargetInfo;
 import frc.robot.Constants;
-import frc.robot.RobotState;
 
 /**
  * Add your docs here.
