@@ -64,6 +64,8 @@ public class Constants {
 
 
 	public static final LimelightConstants kShooterLimelightConstants = new LimelightConstants();
+	public static final double kQuickStopThreshold = 0;
+	public static final int kQuickStopAlpha = 0;
 
 	static {
 		kShooterLimelightConstants.kName = "Shooter Limelight";

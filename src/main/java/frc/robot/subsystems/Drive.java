@@ -13,7 +13,6 @@ import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -254,6 +253,14 @@ public class Drive extends Subsystem {
         return (getRightLinearVelocity() - getLeftLinearVelocity()) / Constants.kDriveWheelTrackWidthInches;
     }
 
+
+    /**
+     * 
+     * The following three methods: "setOpenLoop(), setCurvatureDrive(), and setArcadeDrive()" are
+     * all methods that handle and smoothen pure human driver control over drive train
+     * 
+     */
+
     public synchronized void setOpenLoop(DriveSignal signal) {
         if (mDriveControlState != DriveControlState.OPEN_LOOP) {
             setBrakeMode(true);
@@ -365,6 +372,9 @@ public class Drive extends Subsystem {
 
         setOpenLoop(new DriveSignal(Util.limit(leftMotorOutput, -1.0, 1.0), Util.limit(rightMotorOutput, -1.0, 1.0)));
     }
+
+
+
 
     public synchronized void setVelocity(DriveSignal signal, DriveSignal feedforward) {
         if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {

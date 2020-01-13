@@ -8,8 +8,10 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Solenoid;
+import frc.lib.drivers.LazySparkMax;
 import frc.lib.drivers.LazyTalonFX;
 import frc.lib.drivers.LazyTalonSRX;
+import frc.lib.drivers.SparkMaxFactory;
 import frc.lib.drivers.TalonFXFactory;
 import frc.lib.drivers.TalonSRXFactory;
 import frc.robot.Ports;
@@ -29,16 +31,16 @@ public class Shooter extends Subsystem {
     }
 
     //hardware
-    private final LazyTalonFX mLeftShooter, mRightShooter;
+    private final LazySparkMax mLeftShooter, mRightShooter;
     private final LazyTalonSRX mHoodMotor, mIndexer;
     private final Solenoid mRampSolenoid;
 
 
     private Shooter() {
-        mLeftShooter = TalonFXFactory.createDefaultFalcon("Left Shooter Falcon", Ports.SHOOTER_LEFT_SHOOT_ID);
+        mLeftShooter = SparkMaxFactory.createDefaultSparkMax("Left Shooter Neo", Ports.SHOOTER_LEFT_SHOOT_ID);
         
-        mRightShooter = TalonFXFactory.createSlaveFalcon("Right Shooter Falcon", Ports.SHOOTER_RIGHT_SHOOT_ID,
-             Ports.SHOOTER_LEFT_SHOOT_ID);
+        mRightShooter = SparkMaxFactory.createSlaveSparkMax("Right Shooter Neo", Ports.SHOOTER_RIGHT_SHOOT_ID,
+             mLeftShooter);
 
         
         mHoodMotor = TalonSRXFactory.createDefaultTalon("Hood Motor", Ports.SHOOTER_HOOD_ID);

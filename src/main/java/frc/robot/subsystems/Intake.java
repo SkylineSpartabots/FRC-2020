@@ -44,10 +44,13 @@ public class Intake extends Subsystem {
     }
 
     private Intake() {
-        mIntakeSolenoid = new Solenoid(Ports.INTAKE_SOLENOID_PORT);
+        mIntakeSolenoid = new Solenoid(Ports.PCM_ID, Ports.INTAKE_SOLENOID_PORT);
+        
         mIntakeMotor = TalonSRXFactory.createDefaultTalon("Intake Motor", Ports.INTAKE_MOTOR_ID);
         configureIntakeMotor(mIntakeMotor);
     }
+
+    
 
     @Override
     public void stop() {
