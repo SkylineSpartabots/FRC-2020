@@ -5,27 +5,23 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.subsystems;
+package frc.robot.auto.modes;
+
+import frc.robot.auto.AutoModeEndedException;
+import frc.robot.auto.actions.DriveOpenLoopAction;
+import frc.robot.auto.actions.LambdaAction;
+import frc.robot.auto.actions.LambdaAction.VoidSupplier;
+import frc.robot.subsystems.Intake;
 
 /**
  * Add your docs here.
  */
-public class Superstructure extends Subsystem {
+public class ExampleMode extends AutoModeBase {
 
     @Override
-    public void stop() {
-
+    protected void routine() throws AutoModeEndedException {
+        // TODO Auto-generated method stub
+        runAction(new DriveOpenLoopAction(1.0, 1.0, 5));
+    
     }
-
-    @Override
-    public boolean checkSystem() {
-        return false;
-    }
-
-    @Override
-    public void outputTelemetry() {
-
-    }
-
-
 }

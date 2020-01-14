@@ -39,6 +39,8 @@ public class ColorSensor {
         mColorMatcher.addColorMatch(kGreenTarget);
         mColorMatcher.addColorMatch(kRedTarget);
         mColorMatcher.addColorMatch(kYellowTarget);
+
+        
     }
 
     public Colors getColor() {

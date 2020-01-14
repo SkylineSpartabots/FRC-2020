@@ -351,7 +351,6 @@ public class Drive extends Subsystem {
         double maxInput = Math.copySign(Math.max(Math.abs(throttle), Math.abs(turn)), throttle);
 
         if (throttle >= 0.0) {
-            // First quadrant, else second quadrant
             if (turn >= 0.0) {
                 leftMotorOutput = maxInput;
                 rightMotorOutput = throttle - turn;
@@ -360,7 +359,6 @@ public class Drive extends Subsystem {
                 rightMotorOutput = maxInput;
             }
         } else {
-            // Third quadrant, else fourth quadrant
             if (turn >= 0.0) {
                 leftMotorOutput = throttle + turn;
                 rightMotorOutput = maxInput;

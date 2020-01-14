@@ -50,7 +50,7 @@ public class Intake extends Subsystem {
         configureIntakeMotor(mIntakeMotor);
     }
 
-    
+
 
     @Override
     public void stop() {
@@ -65,5 +65,9 @@ public class Intake extends Subsystem {
     @Override
     public void outputTelemetry() {
 
+    }
+
+    public void retrieveBall() {
+        //does all the stuff for intaking and seeks ball automatically
     }
 }
