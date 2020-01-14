@@ -10,37 +10,32 @@ package frc.robot.subsystems;
 /**
  * Add your docs here.
  */
-public class Superstructure extends Subsystem {
+public class LED extends Subsystem {
 
-    private static Superstructure mInstance = null;
+    private static LED mInstance = null;
 
-    public static Superstructure getInstance() {
+    public static LED getInstance() {
         if(mInstance == null) {
-            mInstance = new Superstructure();
+            mInstance = new LED();
         }
         return mInstance;
     }
 
-
-
-    private Superstructure() {
-        
-    }
-
     @Override
     public void stop() {
+        // TODO Auto-generated method stub
 
     }
 
     @Override
     public boolean checkSystem() {
+        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public void outputTelemetry() {
+        // TODO Auto-generated method stub
 
     }
-
-
 }
