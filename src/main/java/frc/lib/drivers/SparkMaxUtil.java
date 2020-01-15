@@ -22,4 +22,21 @@ public class SparkMaxUtil {
             TelemetryUtil.print(message + " " + errorCode, PrintStyle.ERROR, log);
         }
     }
+
+    public static void setCurrentLimit(LazySparkMax sparkMax, int amps, int maxAllowableCurrent) {
+        checkError(sparkMax.setSmartCurrentLimit(amps), 
+                sparkMax.getName() + " failed to set current limit", true);
+        checkError(sparkMax.setSecondaryCurrentLimit(maxAllowableCurrent), 
+                sparkMax.getName() + " failed to set max allowable current", true);
+    }
+
+    public static void setVoltageCompensation(LazySparkMax sparkMax, double voltage) {
+        checkError(sparkMax.enableVoltageCompensation(voltage), 
+                sparkMax.getName() + " failed to enable voltage comp.", true);
+    }
+
+    public static void disableVoltageCompensation(LazySparkMax sparkMax) {
+        checkError(sparkMax.disableVoltageCompensation(), 
+            sparkMax.getName() + " failed to disable voltage comp.", true);
+    }
 }

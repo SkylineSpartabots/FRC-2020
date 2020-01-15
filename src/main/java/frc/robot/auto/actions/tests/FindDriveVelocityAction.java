@@ -5,12 +5,13 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.auto.actions;
+package frc.robot.auto.actions.tests;
 
 import edu.wpi.first.wpilibj.Timer;
 import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
+import frc.robot.auto.actions.Action;
 import frc.robot.subsystems.Drive;
 
 

@@ -49,7 +49,11 @@ public class Constants {
 
 	public static final double kFalconHeatThreshold = 75;
 	
-
+	public static final double kFlywheelDiameter = 4.0;
+	public static final double kNeoPPR = 42;
+	public static final double kShooterGearReduction = 0.5;
+	public static final double kShooterRampRate = 0;
+	public static final int kShooterKfBufferSize = 20;
 
 	public static final double kHorizontalFOV = 59.6; // degrees
     public static final double kVerticalFOV = 49.7; // degrees
@@ -66,6 +70,12 @@ public class Constants {
 	public static final LimelightConstants kShooterLimelightConstants = new LimelightConstants();
 	public static final double kQuickStopThreshold = 0;
 	public static final int kQuickStopAlpha = 0;
+	public static final double kShooterkP = 0;
+	public static final double kShooterkI = 0;
+	public static final double kShooterkD = 0;
+	public static final double kShooterkF = 0;
+	public static final double kShooterIZone = 0;
+	
 
 	static {
 		kShooterLimelightConstants.kName = "Shooter Limelight";

@@ -7,6 +7,14 @@
 
 package frc.robot.subsystems;
 
+import java.util.ArrayList;
+
+import com.ctre.phoenix.CANifier;
+
+import frc.robot.Ports;
+import frc.robot.states.LEDState;
+import frc.robot.states.TimedLEDState;
+
 /**
  * Add your docs here.
  */
@@ -15,11 +23,41 @@ public class LED extends Subsystem {
     private static LED mInstance = null;
 
     public static LED getInstance() {
-        if(mInstance == null) {
+        if (mInstance == null) {
             mInstance = new LED();
         }
         return mInstance;
     }
+
+    // hardware
+    private final CANifier mCanifier;
+
+    // states
+    private ArrayList<TimedLEDState> states = new ArrayList<>();
+    private LEDState mDesiredLEDState = new LEDState(0.0, 0.0, 0.0);
+
+
+
+    private LED() {
+        mCanifier = new CANifier(Ports.CANIFIER_ID);
+    }
+
+
+    public void addFormostActiveState(TimedLEDState timedState) {
+        states.add(0, timedState);
+    }
+
+    public void addStateToQueue(TimedLEDState timedState) {
+        states.add(timedState);
+    }
+
+
+
+    
+
+
+
+
 
     @Override
     public void stop() {

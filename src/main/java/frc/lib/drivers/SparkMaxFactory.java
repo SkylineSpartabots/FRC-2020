@@ -32,8 +32,12 @@ public class SparkMaxFactory {
         public double OPEN_LOOP_RAMP_RATE = 0.0;
         public double CLOSED_LOOP_RAMP_RATE = 0.0;
 
-        public boolean ENABLE_VOLTAGE_COMPENSATION = false;
+        public boolean ENABLE_VOLTAGE_COMPENSATION = true;
         public double NOMINAL_VOLTAGE = 12.0;
+
+        public int CURRENT_LIMIT = 35;
+        public int MAX_ALLOWABLE_CURRENT = 50;
+        public boolean ENABLE_CURRENT_LIMIT = false;
     }
 
     private static final Configuration kDefaultConfiguration = new Configuration();
@@ -45,13 +49,15 @@ public class SparkMaxFactory {
         kSlaveConfiguration.STATUS_FRAME_RATE_2 = 1000;
     }
 
-    public static LazySparkMax createDefaultSparkMax(String name, int deviceID) {
-        return createSparkMax(name, deviceID, kDefaultConfiguration);
+    public static LazySparkMax createDefaultSparkMax(String name, int deviceID, boolean isInverted) {
+        final LazySparkMax sparkMax = createSparkMax(name, deviceID, kDefaultConfiguration);
+        sparkMax.setInverted(isInverted);
+        return sparkMax;
     }
 
-    public static LazySparkMax createSlaveSparkMax(String name, int deviceID, CANSparkMax master) {
+    public static LazySparkMax createSlaveSparkMax(String name, int deviceID, CANSparkMax master, boolean isInverted) {
         final LazySparkMax sparkMax = createSparkMax(name, deviceID, kSlaveConfiguration);
-        SparkMaxUtil.checkError(sparkMax.follow(master), sparkMax.getName() + " failed to set" +
+        SparkMaxUtil.checkError(sparkMax.follow(master, isInverted), sparkMax.getName() + " failed to set" +
             "master following on init", true);
         return sparkMax;
     }
@@ -91,6 +97,19 @@ public class SparkMaxFactory {
         } else {
             SparkMaxUtil.checkError(sparkMax.disableVoltageCompensation(), sparkMax.getName() + 
                 " failed to disable voltage comp. on init", true);
+        }
+
+        if(config.ENABLE_CURRENT_LIMIT) {
+            SparkMaxUtil.checkError(sparkMax.setSmartCurrentLimit(config.CURRENT_LIMIT), 
+                sparkMax.getName() + " failed to set current limit on init", true);
+            SparkMaxUtil.checkError(sparkMax.setSecondaryCurrentLimit(config.MAX_ALLOWABLE_CURRENT), 
+                sparkMax.getName() + " failed to set max allowable current on init", true);
+        } else {
+            SparkMaxUtil.checkError(sparkMax.setSmartCurrentLimit(0), sparkMax.getName() 
+                + " failed to disable current limit on init", true);
+            SparkMaxUtil.checkError(sparkMax.setSecondaryCurrentLimit(0), 
+                sparkMax.getName() + " failed to disable max allowable current on init", true);
+
         }
 
         return sparkMax;
