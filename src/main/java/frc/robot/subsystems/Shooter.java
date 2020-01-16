@@ -60,12 +60,20 @@ public class Shooter extends Subsystem {
     private double mOnTargetStartTime = Double.POSITIVE_INFINITY;
     private PeriodicIO mPeriodicIO;
 
-
+    /**
+     * configures motor for shooter
+     * @param sparkMax sets current limit and voltage compensation
+     */
     private void configSparkForShooter(LazySparkMax sparkMax) {
         SparkMaxUtil.setCurrentLimit(sparkMax, 30, 40);
         SparkMaxUtil.setVoltageCompensation(sparkMax, 12.0);
     }
 
+    /**
+     * sets up an encoder with measurement period, and conversion factors
+     * @param encoder the encoder being created
+     * @param sensorPhase weather the encoder is in phase or out of phase with the motor
+     */
     private void configEncoderForShooter(CANEncoder encoder, boolean sensorPhase) {
         SparkMaxUtil.checkError(encoder.setInverted(sensorPhase), "shooter encoder " + 
             "failed to set sensor phase", true);
@@ -76,11 +84,13 @@ public class Shooter extends Subsystem {
         SparkMaxUtil.checkError(encoder.setPositionConversionFactor(Constants.kGearReduction / 
             Constants.kNeoPPR), "shooter encoder " + "failed to set position conversion", true);
         
-        SparkMaxUtil.checkError(encoder.setVelocityConversionFactor((Constants.kGearReduction / Constants.kNeoPPR) * 6000), "shooter encoder " + 
+        SparkMaxUtil.checkError(encoder.setVelocityConversionFactor((Constants.kGearReduction / Constants.kNeoPPR) * 6000), "shooter encoder " + //rpm || ppr = pulses per rotation
             "failed to set sensor phase", true);
     }
 
-
+    /**
+     * creates two pidf loops, one for spin up and one for holding (just kFF)
+     */
     private void setControllerConstants() {
         mPIDFController.setP(Constants.kShooterkP, kSpinUpSlot);
         mPIDFController.setI(Constants.kShooterkI, kSpinUpSlot);
@@ -115,33 +125,41 @@ public class Shooter extends Subsystem {
         mPIDFController = mMasterShooter.getPIDController();
         setControllerConstants();
 
-        mMasterShooter.burnFlash();
+        mMasterShooter.burnFlash(); // "remembers" the current settings even after power cut. expensive product
         mSlaveShooter.burnFlash();
     
 
         mRampSolenoid = new Solenoid(Ports.SHOOTER_RAMP_SOLENOID_PORT);
     }
 
-
+    /**
+     * remembers the inputs and outputs of the shooter
+     */
     private static class PeriodicIO {
         //inputs
+        /**velocity of the encoder in RPM by using velocity conversion factor */
         public double velocity;
         public double prev_velocity;
         public double velocity_in_ticks_per_100ms;
+        /**applied voltage times bus voltage */
         public double voltage;
-        public double master_shooter_temp;
+        public double master_shooter_temp; // celcius
         public double slave_shooter_temp;
 
         //outputs
+        /**target rmp */
         public double setpoint_rpm;
         public double prev_setpoint_rpm;
     }
 
+    /**
+     * reads velocity, voltage, and temperature
+     */
     @Override
     public void readPeriodicInputs() {
         mPeriodicIO.velocity = mShooterEncoder.getVelocity();
         mPeriodicIO.velocity_in_ticks_per_100ms = 42.0 / 600.0 * mPeriodicIO.velocity;
-        mPeriodicIO.voltage = mMasterShooter.getAppliedOutput() * mMasterShooter.getBusVoltage();
+        mPeriodicIO.voltage = mMasterShooter.getAppliedOutput() * mMasterShooter.getBusVoltage(); // fraction of voltage used * voltage coming in
 
         mPeriodicIO.master_shooter_temp = mMasterShooter.getMotorTemperature();
         mPeriodicIO.slave_shooter_temp = mSlaveShooter.getMotorTemperature();
@@ -178,19 +196,31 @@ public class Shooter extends Subsystem {
 
             @Override
             public void onStop(double timestamp) {
-
+                stop();
             }
             
         });
     }
 
+    /**
+     * enum for managing the current status of the shooter.
+     * open loop: for testing purposes
+     * spin up: PIDF controller to reach desired RPM
+     * hold when ready: brief state of calcuating kF required in hold stage
+     * hold: state for mantaining rpm and quickly fixing any error when rapidly firing
+     */
     public enum ShooterControlState {
-        OPEN_LOOP, //for testing purposes
-        SPIN_UP, //PIDF controller to reach desired RPM
-        HOLD_WHEN_READY, //brief state of calcuating kF required in hold stage
-        HOLD //state for mantaining rpm and quickly fixing any error when rapidly firing
+        OPEN_LOOP, 
+        SPIN_UP, 
+        HOLD_WHEN_READY, 
+        HOLD 
     }
 
+    /**
+     * configs for open loop if not in open loop.
+     * sets current limit and voltage comp
+     * @param percentOutput the output to set to the motor
+     */
     public synchronized void setOpenLoop(double percentOutput) {
         if(mControlState != ShooterControlState.OPEN_LOOP) {
             mControlState = ShooterControlState.OPEN_LOOP;
@@ -204,7 +234,10 @@ public class Shooter extends Subsystem {
         mMasterShooter.set(ControlType.kDutyCycle, percentOutput);
     }
 
-
+    /**
+     * prepares for spin up and configures motors for spin up. 
+     * @param setpointRpm what to set the target rpm
+     */
     public synchronized void setSpinUp(double setpointRpm) {
         if(mControlState != ShooterControlState.SPIN_UP) {
             configForSpinUp();
@@ -212,7 +245,10 @@ public class Shooter extends Subsystem {
         mPeriodicIO.setpoint_rpm = setpointRpm;
     }
 
-    
+    /**
+     * Configs motors for holding when ready.
+     * @param setpointRpm target rpm for motor
+     */
     public synchronized void setHoldWhenReady(double setpointRpm) {
         if(mControlState == ShooterControlState.SPIN_UP || mControlState == ShooterControlState.OPEN_LOOP) {
             configForHoldWhenReady();
@@ -220,8 +256,10 @@ public class Shooter extends Subsystem {
         mPeriodicIO.setpoint_rpm = setpointRpm;
     }
 
-
-
+    /**
+     * sets control state and changes pid slot
+     * disables voltage comp and sets ramp rate
+     */
     private void configForSpinUp() {
         mControlState = ShooterControlState.SPIN_UP;
         mCurrentSlot = kSpinUpSlot;
@@ -232,7 +270,10 @@ public class Shooter extends Subsystem {
         SparkMaxUtil.disableVoltageCompensation(mSlaveShooter);
     }
 
-
+    /**
+     * Sets pid slod and control state.
+     * Disables voltage comp and sets ramp rate.
+     */
     private void configForHoldWhenReady() {
         mControlState = ShooterControlState.HOLD_WHEN_READY;
         mCurrentSlot = kSpinUpSlot;
@@ -243,23 +284,34 @@ public class Shooter extends Subsystem {
         SparkMaxUtil.disableVoltageCompensation(mSlaveShooter);
     }
 
+    /**
+     * Sets pid slot and control state.
+     * Sets feed forward using estimator and sets voltage comp
+     */
     private void configForHold() {
         mControlState = ShooterControlState.HOLD;
         mCurrentSlot = kHoldSlot;
         mPIDFController.setFF(mKfEstimator.getAverage(), mCurrentSlot);
-        mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
+        //mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
 
         SparkMaxUtil.setVoltageCompensation(mMasterShooter, 12.0);
         SparkMaxUtil.setVoltageCompensation(mSlaveShooter, 12.0);
     }
 
+    /**
+     * clears feed forward estimator and sets mOnTarget to false.
+     */
     private void resetHold() {
         mKfEstimator.clear();
         mOnTarget = false;
     }
 
-    private double estimateKf(double rpm, double voltage) {
-        final double output = 1023.0 / 12.0 * voltage;
+    /**
+     * calculates a new feed forward value using equation: constant / voltage * applied voltage / velocity_in_ticks_per_100ms
+     * @return calculated feed forward output.
+     */
+    private double estimateKf() { 
+        final double output = 1023.0 / 12.0 * mPeriodicIO.voltage;
         return output/mPeriodicIO.velocity_in_ticks_per_100ms;
     }
 
@@ -267,6 +319,9 @@ public class Shooter extends Subsystem {
      * This method is the main controller of progressing the shooter through all the
      * stages (spin up -> hold when ready -> hold)
      * When the shooter is in the hold state, it is ready to fire
+     * 
+     * Get relatively precise when it comes to error with rpm (get close to wanted value), but once youre there, 
+     * you have a bit more wiggle room with error from target rpm
      */
     private void handleClosedLoop(double timestamp) {
 
@@ -286,7 +341,7 @@ public class Shooter extends Subsystem {
             }
 
             if(mOnTarget) {
-                mKfEstimator.addValue(estimateKf(mPeriodicIO.velocity, mPeriodicIO.voltage));
+                mKfEstimator.addValue(estimateKf());
             }
 
             if(mKfEstimator.getNumValues() >= Constants.kShooterMinOnTargetSamples) {
@@ -297,34 +352,50 @@ public class Shooter extends Subsystem {
         }
 
         if(mControlState == ShooterControlState.HOLD) {
-            if(mPeriodicIO.velocity > mPeriodicIO.setpoint_rpm) {
-                mKfEstimator.addValue(estimateKf(mPeriodicIO.velocity, mPeriodicIO.voltage));
+            if(mPeriodicIO.velocity > mPeriodicIO.setpoint_rpm) { //add logic from going in between hold when ready and hold, maybe use stop on target threshold
+                mKfEstimator.addValue(estimateKf());
                 mPIDFController.setFF(mKfEstimator.getAverage(), kHoldSlot);
             }
         }
     }
 
+    /**
+     * checks if the motor's rpm is on target using the fact that the shooter will only be in it's HOLD state when on target.
+     * @return if motor rpm is on target
+     */
     public synchronized boolean isOnTarget() {
         return mControlState == ShooterControlState.HOLD;
     }
 
+    /**
+     * returns periodicIO's setpointrpm
+     * @return setpoint rpm
+     */
     public synchronized double getSetpointRpm() {
         return mPeriodicIO.setpoint_rpm;
     }
 
-
-
+    /**
+     * sets open loop to zero and rpm setpoint to zero
+     */
     @Override
     public void stop() {
         setOpenLoop(0.0);
         mPeriodicIO.setpoint_rpm = 0.0;
     }
 
+    /**
+     * test method for the shooter
+     */
     @Override
     public boolean checkSystem() {
         return false;
     }
 
+    /**
+     * Outputs to smart dashboard.
+     * Outputs IF on target rpm, target rpm, and current velocity (rpm)
+     */
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Ready to Fire?", isOnTarget());

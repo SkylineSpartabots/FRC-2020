@@ -58,6 +58,12 @@ public class TalonFXUtil {
         }
     }
 
+    /**
+     * checks if slave motor has any stick faults: under voltage and reset during enabled
+     * If it does have any faults, it will log them and then clear it.
+     * @param slaveFalcon
+     * @param master_ID
+     */
     public static synchronized void checkSlaveFaults(final LazyTalonFX slaveFalcon, int master_ID) {
         StickyFaults faults = new StickyFaults();
         PheonixUtil.checkError(slaveFalcon.getStickyFaults(faults), 
@@ -84,6 +90,11 @@ public class TalonFXUtil {
 
     }
 
+    /**
+     * checks weather the talon has any of the sticky faults: under voltage, reset during enabled, sensor out of phase, remote loss of signa, and sensor overflow
+     * If it does have any faults, it will log them and then clear it.
+     * @param falcon talon to check
+     */
     public static synchronized void checkSensorFaults(final LazyTalonFX falcon) {
         StickyFaults faults = new StickyFaults();
         PheonixUtil.checkError(falcon.getStickyFaults(faults), 

@@ -70,6 +70,11 @@ public class Drive extends Subsystem {
     // control states
     private DriveControlState mDriveControlState;
 
+    /**
+     * sets the motor's inversion, open loop ramp, closed loop ramp, voltage comp sat, and current limits
+     * @param falcon the falcon being set up
+     * @param inversion inverted state
+     */
     private synchronized void configureMotorForDrive(LazyTalonFX falcon, InvertType inversion) {
         falcon.setInverted(inversion);
         PheonixUtil.checkError(falcon.configOpenloopRamp(0.3, Constants.kTimeOutMs),
@@ -88,6 +93,12 @@ public class Drive extends Subsystem {
                 falcon.getName() + " failed to set input current limit", true);
     }
 
+    /**
+     * configures the sensor phase and feedback coefficient for a master motor
+     * @param falcon the falcon being set up
+     * @param inversion inverted state
+     * @param sensorPhase is sensor in same direction as motor
+     */
     private synchronized void configureMasterForDrive(LazyTalonFX falcon, InvertType inversion, boolean sensorPhase) {
         configureMotorForDrive(falcon, inversion);
         PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048 / Constants.kWheelDiameter) / Math.PI, 0,
@@ -120,15 +131,25 @@ public class Drive extends Subsystem {
         setOpenLoop(DriveSignal.NEUTRAL);
     }
 
+    /**
+     * tracks the inputs and outputs of the drive train
+     */
     private static class PeriodicIO {
         // inputs
         public double timestamp;
+        /**position of left encoder (raw) */
         public double left_position;
+        /**position of right encoder (raw) */
         public double right_position;
+        /**absolute change in left encoder distance (raw) */
         public double left_distance;
+        /**absolute change in right encoder distance (raw) */
         public double right_distance;
+        /**left encoder distance (raw) per 100ms */
         public double left_velocity_per_100ms;
+        /**right encoder distance (raw) per 100ms */
         public double right_velocity_per_100ms;
+        /**current direction of robot using navx */
         public Rotation2d heading = Rotation2d.identity();
         public Pose2d error = Pose2d.identity();
 
@@ -146,6 +167,9 @@ public class Drive extends Subsystem {
         public double right_feedforward;
     }
 
+    /**
+     * reads encoder position, change in position, velocity, heading, and temperature
+     */
     @Override
     public synchronized void readPeriodicInputs() {
         mPeriodicIO.timestamp = Timer.getFPGATimestamp();
@@ -173,6 +197,11 @@ public class Drive extends Subsystem {
         mPeriodicIO.right_slave_temperature = mRightSlave.getTemperature();
     }
 
+    /**
+     * if open loop: sets output from periodic io
+     * if path following: sets desired velocity to motors from periodic io
+     * arbitrary feed forward adds the fourth parameter to the output
+     */
     @Override
     public void writePeriodicOutputs() {
         if (mDriveControlState == DriveControlState.OPEN_LOOP) {
@@ -187,6 +216,9 @@ public class Drive extends Subsystem {
         }
     }
 
+    /**
+     * registers drive train's loop to subsystem manager
+     */
     @Override
     public void registerEnabledLoops(ILooper loop) {
         loop.register(new Loop() {
@@ -225,30 +257,55 @@ public class Drive extends Subsystem {
         });
     }
 
+    /**
+     * @return raw position of left encoder
+     */
     public double getLeftEncoderPosition() {
         return mPeriodicIO.left_position;
     }
 
+    /**
+     * 
+     * @return raw position of right encoder
+     */
     public double getRightEncoderPosition() {
         return mPeriodicIO.right_position;
     }
 
+    /**
+     * @return left encoder distance (raw) per second
+     */
     public double getLeftLinearVelocity() {
         return mPeriodicIO.left_velocity_per_100ms * 10.0;
     }
 
+    /**
+     * 
+     * @return right encoder distance (raw) per second
+     */
     public double getRightLinearVelocity() {
         return mPeriodicIO.right_velocity_per_100ms * 10.0;
     }
 
+    /**
+     * @return average linear distance (raw) per second with both sides
+     */
     public double getLinearVelocity() {
         return (getRightLinearVelocity() + getLeftLinearVelocity()) / 2.0;
     }
 
+    /**
+     * 
+     * @return absolute value of linear average drive velocity
+     */
     public double getAverageDriveVelocityMagnitude() {
         return (Math.abs(getRightLinearVelocity()) + Math.abs(getLeftLinearVelocity())) / 2.0;
     }
 
+    /**
+     * 
+     * @return angular velocity of bot in degrees per second
+     */
     public double getAngularVelocity() {
         return (getRightLinearVelocity() - getLeftLinearVelocity()) / Constants.kDriveWheelTrackWidthInches;
     }
@@ -256,11 +313,9 @@ public class Drive extends Subsystem {
 
     /**
      * 
-     * The following three methods: "setOpenLoop(), setCurvatureDrive(), and setArcadeDrive()" are
-     * all methods that handle and smoothen pure human driver control over drive train
-     * 
+     * Sets a drive signal to the motors. If the robot is not in a driving state, it will turn break mode on.
+     * @param signal drive signal to set percent power to motors
      */
-
     public synchronized void setOpenLoop(DriveSignal signal) {
         if (mDriveControlState != DriveControlState.OPEN_LOOP) {
             setBrakeMode(true);
@@ -275,6 +330,12 @@ public class Drive extends Subsystem {
     }
 
     private double mQuickStopAccumulator;
+    /**
+     * sets power to the robot in such a way to create a curved drive
+     * @param throttle forward amount
+     * @param curve turning amount
+     * @param quickTurn should the robot turn quickly
+     */
     public synchronized void setCurvatureDrive(double throttle, double curve, boolean quickTurn) {
         throttle = Util.limit(throttle, -1.0, 1.0);
         throttle = Util.deadBand(throttle, 0.04);
@@ -284,7 +345,7 @@ public class Drive extends Subsystem {
 
         double angularPower;
         boolean overPower;
-
+    
         if (quickTurn) {
             if (Math.abs(throttle) < Constants.kQuickStopThreshold) {
                 mQuickStopAccumulator = (1 - Constants.kQuickStopAlpha) * mQuickStopAccumulator
@@ -335,6 +396,11 @@ public class Drive extends Subsystem {
         setOpenLoop(new DriveSignal(leftMotorOutput, rightMotorOutput));
     }
 
+    /**
+     * the turning algorithm is the same as the one used in DifferentialDrive.
+     * @param throttle forward amount
+     * @param turn turning amount
+     */
     public synchronized void setArcadeDrive(double throttle, double turn) {
         throttle = Util.limit(throttle, -1, 1);
         throttle = Util.deadBand(throttle, 0.04);
@@ -371,9 +437,11 @@ public class Drive extends Subsystem {
         setOpenLoop(new DriveSignal(Util.limit(leftMotorOutput, -1.0, 1.0), Util.limit(rightMotorOutput, -1.0, 1.0)));
     }
 
-
-
-
+    /**
+     * sets velocity demand during path following mode. if not in path following mode, turns on break mode and limits stator current.
+     * @param signal the drive signal to set motor velocity
+     * @param feedforward the drive signal to set motor feedforward
+     */
     public synchronized void setVelocity(DriveSignal signal, DriveSignal feedforward) {
         if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             setBrakeMode(true);
@@ -387,6 +455,11 @@ public class Drive extends Subsystem {
         mPeriodicIO.right_feedforward = signal.getRight();
     }
 
+    /**
+     * Initializes the path and sets the drive train into the path following state.
+     * @param path path that the robot will follow
+     * @param reversed NOT APPLICABLE but reflects the path horizontally
+     */
     public synchronized void setDrivePath(Path path, boolean reversed) {
         if (mCurrentPath != path || mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             RobotState.getInstance().resetDistanceDriven();
@@ -407,6 +480,11 @@ public class Drive extends Subsystem {
         }
     }
 
+    /**
+     * returns true if path following is done or doesn't exist and false if not.
+     * Used in actions to see when the path is complete to end the action
+     * @return if path following exists, check if it's finished
+     */
     public synchronized boolean isDoneWithPath() {
         if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             return mPathFollower.isFinished();
@@ -415,6 +493,9 @@ public class Drive extends Subsystem {
         return true;
     }
 
+    /**
+     * force finishes path following in case patfollowing needs to be exited for emergency
+     */
     public synchronized void forceDoneWithPath() {
         if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             mPathFollower.forceFinish();
@@ -422,8 +503,12 @@ public class Drive extends Subsystem {
         TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
     }
 
+    /**
+     * continuously updates path following state. Reads from robot_state sets velocity to the motors according to the current path.
+     * @param timestamp current timestamp in milliseconds
+     */
     private void updatePathFollower(double timestamp) {
-        if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
+        if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             RobotState robot_state = RobotState.getInstance();
             Pose2d field_to_vehicle = robot_state.getLatestFieldToVehicle().getValue();
             Twist2d command = mPathFollower.update(timestamp, field_to_vehicle, robot_state.getDistanceDriven(),
@@ -441,6 +526,11 @@ public class Drive extends Subsystem {
         }
     }
 
+    /**
+     * checks if the robot has passed a specific marker
+     * @param marker marker for pathfollower to check if it has passed it.
+     * @return true if the robot has passed the marker and false if not
+     */
     public synchronized boolean hasPassedMarker(String marker) {
         if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             return mPathFollower.hasPassedMarker(marker);
@@ -450,15 +540,27 @@ public class Drive extends Subsystem {
         }
     }
 
+    /**
+     * Gets the heading of the robot (using navx)
+     * @return a Rotation2d object representing the current direction of the robot
+     */
     public synchronized Rotation2d getHeading() {
         return mPeriodicIO.heading;
     }
 
+    /**
+     * Sets the heading variable of periodicIO to the heading passed in.
+     * It sets an error value (how many degrees off target) based on the current robot heading and value passed in.
+     * @param heading the Rotation2d objec that represents the desired heading direction
+     */
     public synchronized void setHeading(Rotation2d heading) {
         mGyroOffset = heading.rotateBy(Rotation2d.fromDegrees(mNavx.getHeading()).inverse());
         mPeriodicIO.heading = heading;
     }
 
+    /**
+     * Sets left and right encoder cound to zero.
+     */
     public synchronized void resetEncoders() {
         PheonixUtil.checkError(mLeftMaster.setSelectedSensorPosition(0, 0, Constants.kTimeOutMs),
                 mLeftMaster.getName() + " failed to reset encoder", true);
@@ -466,6 +568,10 @@ public class Drive extends Subsystem {
                 mRightMaster.getName() + " failed to reset encoder", true);
     }
 
+    /**
+     * Sets all motors to the specified brake mode. And updates inner break mode state.
+     * @param enableBrake if true sets break mode, if false sets to neutral mode.
+     */
     public synchronized void setBrakeMode(boolean enableBrake) {
         if (enableBrake != mIsBrakeMode) {
             NeutralMode mode = enableBrake ? NeutralMode.Brake : NeutralMode.Brake;
@@ -477,6 +583,10 @@ public class Drive extends Subsystem {
         }
     }
 
+    /**
+     * Sets all motors' stator current to specified amps
+     * @param amps stator limit to set all motors to in amps
+     */
     public synchronized void setStatorCurrentLimit(int amps) {
         TalonFXUtil.setStatorCurrentLimit(mLeftMaster, amps);
         TalonFXUtil.setStatorCurrentLimit(mLeftSlave, amps);
@@ -484,6 +594,10 @@ public class Drive extends Subsystem {
         TalonFXUtil.setStatorCurrentLimit(mRightSlave, amps);
     }
 
+    /**
+     * checks all talons for sticky faults, and prints errors as needed (done in .checkSensorFaults())
+     * if faults are present, they are cleared
+     */
     public synchronized void handleFaults() {
         TalonFXUtil.checkSensorFaults(mLeftMaster);
         TalonFXUtil.checkSlaveFaults(mLeftSlave, Ports.DRIVE_LEFT_MASTER_ID);
@@ -491,6 +605,10 @@ public class Drive extends Subsystem {
         TalonFXUtil.checkSlaveFaults(mRightSlave, Ports.DRIVE_RIGHT_MASTER_ID);
     }
 
+    /**
+     * checks if any of the motors is above the falcon heat threshold
+     * @return true if drive is overheating false if not
+     */
     public synchronized boolean isDriveOverheating() {
         return mPeriodicIO.left_master_temperature > Constants.kFalconHeatThreshold
                 || mPeriodicIO.left_slave_temperature > Constants.kFalconHeatThreshold
@@ -498,21 +616,35 @@ public class Drive extends Subsystem {
                 || mPeriodicIO.right_slave_temperature > Constants.kFalconHeatThreshold;
     }
 
+    /**
+     * enum to keep track of drive control status
+     */
     private enum DriveControlState {
         OPEN_LOOP, PATH_FOLLOWING;
     }
 
+    /**
+     * resets heading and encoder
+     */
     @Override
     public void zeroSensors() {
         setHeading(Rotation2d.identity());
         resetEncoders();
     }
 
+    /**
+     * stops the drivetrain. Sets open loop to neutral
+     */
     @Override
     public void stop() {
         setOpenLoop(DriveSignal.NEUTRAL);
     }
 
+    /**
+     * Outputs telemetry messages to .dsevents or smartdashboard
+     * 
+     * Outputs if the drive train is overheating
+     */
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Is Drive Overheathing", isDriveOverheating());

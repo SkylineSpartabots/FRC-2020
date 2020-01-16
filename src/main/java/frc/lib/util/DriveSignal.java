@@ -8,7 +8,7 @@
 package frc.lib.util;
 
 /**
- * Add your docs here.
+ * Stores a double for left, right, and boolean for break mode.
  */
 public class DriveSignal {
     private final double mLeftMotor;
