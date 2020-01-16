@@ -75,6 +75,9 @@ public class Constants {
 	public static final double kShooterkD = 0;
 	public static final double kShooterkF = 0;
 	public static final double kShooterIZone = 0;
+	public static final double kShooterStartOnTargetRpm = 0;
+	public static final double kShooterStopOnTargetRpm = 0;
+	public static final int kShooterMinOnTargetSamples = 0;
 	
 
 	static {

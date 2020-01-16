@@ -29,4 +29,6 @@ public abstract class Subsystem {
     public abstract boolean checkSystem();
 
     public abstract void outputTelemetry();
+
+    public boolean hasEmergency = false;
 }

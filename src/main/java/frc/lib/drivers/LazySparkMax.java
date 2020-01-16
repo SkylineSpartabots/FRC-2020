@@ -49,4 +49,12 @@ public class LazySparkMax extends CANSparkMax {
             super.getPIDController().setReference(setpoint, type);
         }
     }
+
+    public void set(ControlType type, double setpoint, int pidSlot) {
+        if(setpoint != mLastSet || type != mLastMode) {
+            mLastSet = setpoint;
+            mLastMode = type;
+            super.getPIDController().setReference(setpoint, type, pidSlot);
+        }
+    }
 }
