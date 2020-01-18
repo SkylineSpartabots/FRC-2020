@@ -57,6 +57,7 @@ public class TelemetryUtil {
                 break;
         }
 
-        System.out.println(startKey + message + endKey);
+        System.out.println(startKey + message + endKey); //YOU KNOW UR BOI CAN System.out.println! 
+        //if u can read this then Kush is ur dad
     }
 }
