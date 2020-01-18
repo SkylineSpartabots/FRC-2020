@@ -62,8 +62,9 @@ public class Constants {
 	public static final double kImageCaptureLatency = 11.0 / 1000.0;;
 
 
-	public static final double kLensHeight = 11.75;
-	public static final double kLensHorizontalAngle = 35.0;
+
+	public static final double kLensHeight = 10.75;
+	public static final double kLensHorizontalAngle = -1.37;
 	public static final double kTargetHeight = 98.5;
 
 

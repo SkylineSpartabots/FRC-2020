@@ -30,6 +30,10 @@ public class SparkMaxUtil {
                 sparkMax.getName() + " failed to set max allowable current", true);
     }
 
+    public static void disableCurrentLimit(LazySparkMax sparkMax) {
+        setCurrentLimit(sparkMax, 0, 0);
+    }
+
     public static void setVoltageCompensation(LazySparkMax sparkMax, double voltage) {
         checkError(sparkMax.enableVoltageCompensation(voltage), 
                 sparkMax.getName() + " failed to enable voltage comp.", true);

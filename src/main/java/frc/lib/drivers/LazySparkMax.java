@@ -21,25 +21,32 @@ public class LazySparkMax extends CANSparkMax {
     protected ControlType mLastMode = null;
     protected String mName = "";
 
-    protected CANSparkMax mLeader = null;
+    protected LazySparkMax mMaster = null;
 
     public LazySparkMax(String name, int deviceID) {
         super(deviceID, MotorType.kBrushless);
         mName = name;
     }
 
-    public CANSparkMax getLeader() {
-        return mLeader;
+    public LazySparkMax getMaster() {
+        return mMaster;
+    }
+
+    public CANError setMaster(final CANSparkMax leader) {
+        mMaster = (LazySparkMax) leader;
+        return super.follow(leader);
     }
 
     public String getName() {
         return mName;
     }
 
-    @Override
-    public CANError follow(final CANSparkMax leader) {
-        mLeader = leader;
-        return super.follow(leader);
+    public ControlType getControlMode() {
+        return mLastMode;
+    }
+
+    public double getLastSet() {
+        return mLastSet;
     }
 
     public void set(ControlType type, double setpoint) {

@@ -137,17 +137,15 @@ public class Shooter extends Subsystem {
      */
     private static class PeriodicIO {
         //inputs
-        /**velocity of the encoder in RPM by using velocity conversion factor */
         public double velocity;
         public double prev_velocity;
         public double velocity_in_ticks_per_100ms;
-        /**applied voltage times bus voltage */
+    
         public double voltage;
         public double master_shooter_temp; // celcius
         public double slave_shooter_temp;
 
         //outputs
-        /**target rmp */
         public double setpoint_rpm;
         public double prev_setpoint_rpm;
     }
@@ -266,6 +264,9 @@ public class Shooter extends Subsystem {
 
         mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
 
+        SparkMaxUtil.disableCurrentLimit(mMasterShooter);
+        SparkMaxUtil.disableCurrentLimit(mSlaveShooter);
+
         SparkMaxUtil.disableVoltageCompensation(mMasterShooter);
         SparkMaxUtil.disableVoltageCompensation(mSlaveShooter);
     }
@@ -280,6 +281,9 @@ public class Shooter extends Subsystem {
 
         mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
 
+        SparkMaxUtil.disableCurrentLimit(mMasterShooter);
+        SparkMaxUtil.disableCurrentLimit(mSlaveShooter);
+
         SparkMaxUtil.disableVoltageCompensation(mMasterShooter);
         SparkMaxUtil.disableVoltageCompensation(mSlaveShooter);
     }
@@ -292,7 +296,10 @@ public class Shooter extends Subsystem {
         mControlState = ShooterControlState.HOLD;
         mCurrentSlot = kHoldSlot;
         mPIDFController.setFF(mKfEstimator.getAverage(), mCurrentSlot);
-        //mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
+        mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
+
+        SparkMaxUtil.disableCurrentLimit(mMasterShooter);
+        SparkMaxUtil.disableCurrentLimit(mSlaveShooter);
 
         SparkMaxUtil.setVoltageCompensation(mMasterShooter, 12.0);
         SparkMaxUtil.setVoltageCompensation(mSlaveShooter, 12.0);

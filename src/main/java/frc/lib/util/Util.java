@@ -7,6 +7,8 @@
 
 package frc.lib.util;
 
+import java.util.List;
+
 /**
  * Add your docs here.
  */
@@ -40,6 +42,14 @@ public class Util {
 
     public static double deadBand(double val, double deadBand) {
         return (Math.abs(val) > Math.abs(deadBand)) ? val : 0.0;
+    }
+
+    public static boolean allCloseTo(final List<Double> list, double value, double epsilon) {
+        boolean result = true;
+        for (Double value_in : list) {
+            result &= epsilonEquals(value_in, value, epsilon);
+        }
+        return result;
     }
 
 }

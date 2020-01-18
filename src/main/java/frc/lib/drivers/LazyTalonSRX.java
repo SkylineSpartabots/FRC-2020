@@ -19,6 +19,8 @@ public class LazyTalonSRX extends TalonSRX {
     protected ControlMode mLastControlMode = null;
     private String mName;
 
+    protected LazyTalonSRX mMaster = null;
+
     public LazyTalonSRX(String name, int deviceID) {
         super(deviceID);
         mName = name;
@@ -30,6 +32,15 @@ public class LazyTalonSRX extends TalonSRX {
 
     public String getName() {
         return mName;
+    }
+
+    public void setMaster(final LazyTalonSRX master) {
+        mMaster = master;
+        super.set(ControlMode.Follower, master.getDeviceID());
+    }
+
+    public LazyTalonSRX getMaster() {
+        return mMaster;
     }
 
     @Override

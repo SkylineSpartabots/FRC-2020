@@ -145,7 +145,7 @@ public class Limelight extends Subsystem {
 
     public synchronized double getDistance() {
         return (Constants.kTargetHeight - mConstants.kHeight) / 
-            Math.tan(Math.toRadians(mConstants.kHorizontalToLens.getDegrees() - mPeriodicIO.yOffset));
+            Math.tan(Math.toRadians(3 + mPeriodicIO.yOffset));
     }
 
     public synchronized List<TargetInfo> getTarget() {

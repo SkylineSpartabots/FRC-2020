@@ -17,6 +17,8 @@ import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
+import frc.lib.sensors.ColorSensor;
+import frc.lib.sensors.ColorSensor.Colors;
 import frc.lib.util.CrashTracker;
 import frc.robot.loops.Looper;
 import frc.robot.subsystems.Drive;
@@ -42,6 +44,7 @@ public class Robot extends TimedRobot {
   private NetworkTable limelightTable;
   private Looper enabledLooper, disabledLooper;
   private Xbox mDriveController;
+  private ColorSensor colorSensor;
 
 
   /**
@@ -56,6 +59,7 @@ public class Robot extends TimedRobot {
     enabledLooper = new Looper();
     disabledLooper = new Looper(); 
     mLimelight = new Limelight(Constants.kShooterLimelightConstants);
+    colorSensor = new ColorSensor();
     //mDrive = Drive.getInstance();
 
     subsystems = SubsystemManager.getInstance();
@@ -140,6 +144,28 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     try {
       mDriveController.update();
+      Colors color = colorSensor.getColor();
+
+      //System.out.println("R: " + colorSensor.getRaw().red + " G: " + colorSensor.getRaw().green + " B: " + colorSensor.getRaw().blue);
+    
+      switch(color) {
+        case BLUE:
+          System.out.println("Blue");
+          break;
+        case RED:
+          System.out.println("Red");
+          break;
+        case GREEN:
+          System.out.println("Green");
+          break;
+        case YELLOW:
+          System.out.println("Yellow");
+          break;
+        case UNKNOWN:
+          System.out.println("Unk");
+          break;
+      }
+
 
       //mDrive.setCurvatureDrive(mDriveController.getY(Hand.kLeft), -mDriveController.getX(Hand.kRight), false);
       //powerCellFollow();

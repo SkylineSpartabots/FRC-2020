@@ -10,13 +10,12 @@ package frc.lib.sensors;
 import com.revrobotics.ColorMatch;
 import com.revrobotics.ColorMatchResult;
 import com.revrobotics.ColorSensorV3;
+import com.revrobotics.ColorSensorV3.RawColor;
 
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
 
-/**
- * Add your docs here. 
- */
+
 public class ColorSensor {
 
     private final Color kBlueTarget = ColorMatch.makeColor(0.109375, 0.427978515625, 0.462646484375);
@@ -29,7 +28,11 @@ public class ColorSensor {
     private final ColorMatch mColorMatcher;
 
     public enum Colors {
-        BLUE, GREEN, RED, YELLOW, UNKNOWN;
+        BLUE, 
+        GREEN,
+        RED,
+        YELLOW,
+        UNKNOWN;
     }
 
     public ColorSensor() {
@@ -42,6 +45,10 @@ public class ColorSensor {
         mColorMatcher.addColorMatch(kYellowTarget);
         mColorMatcher.addColorMatch(kWhiteTarget);
         
+    }
+
+    public RawColor getRaw() {
+        return mColorSensor.getRawColor();
     }
 
     public Colors getColor() {
@@ -60,7 +67,5 @@ public class ColorSensor {
             return Colors.UNKNOWN;
         }
     }
-
-
 
 }
