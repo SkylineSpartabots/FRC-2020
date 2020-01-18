@@ -7,6 +7,8 @@
 
 package frc.robot.subsystems;
 
+import frc.robot.states.TimedLEDState;
+
 /**
  * Add your docs here.
  */
@@ -21,10 +23,15 @@ public class Superstructure extends Subsystem {
         return mInstance;
     }
 
-
+    private LED led;
 
     private Superstructure() {
-        
+        led = LED.getInstance();
+        testLED();
+    }
+
+    private void testLED() {
+        led.addStateToQueue(TimedLEDState.StaticLEDState.kEnabled);
     }
 
     @Override
