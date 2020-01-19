@@ -8,20 +8,20 @@
 package frc.robot.auto.modes;
 
 import frc.robot.auto.AutoModeEndedException;
-import frc.robot.auto.actions.DriveOpenLoopAction;
-import frc.robot.auto.actions.LambdaAction;
-import frc.robot.auto.actions.LambdaAction.VoidSupplier;
-import frc.robot.subsystems.Intake;
+import frc.robot.auto.actions.DrivePathAction;
+import frc.robot.paths.MoveAndTurnPath;
+import frc.robot.paths.MoveTestPath;
+import frc.robot.paths.TurnTestPath;
 
 /**
- * Add your docs here.
+ * Testing pathing
  */
 public class ExampleMode extends AutoModeBase {
 
     @Override
     protected void routine() throws AutoModeEndedException {
-        // TODO Auto-generated method stub
-        runAction(new DriveOpenLoopAction(1.0, 1.0, 5));
-    
+        runAction(new DrivePathAction(new MoveTestPath()));
+        runAction(new DrivePathAction(new TurnTestPath()));
+        runAction(new DrivePathAction(new MoveAndTurnPath()));
     }
 }
