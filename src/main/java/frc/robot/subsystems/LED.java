@@ -44,7 +44,9 @@ public class LED extends Subsystem {
     private ArrayList<TimedLEDState> errorstates = new ArrayList<>();
     private ArrayList<TimedLEDState> warningstates = new ArrayList<>();
     private ArrayList<TimedLEDState> infostates = new ArrayList<>();
-    private List<ArrayList<TimedLEDState>> allStates = Arrays.asList(errorstates, warningstates, infostates);
+    private ArrayList<TimedLEDState> basicstate = new ArrayList<>();
+    private List<ArrayList<TimedLEDState>> allStates = Arrays.asList(errorstates, warningstates, infostates,
+            basicstate);
     private LEDState mDesiredLEDState = new LEDState(0.0, 0.0, 0.0);
     private int priorityLogic = 0;
     private int cycleLogic = 0;
@@ -100,7 +102,11 @@ public class LED extends Subsystem {
     public void logics(double startTime) {
         if (errorstates.size() == 0) {
             if (warningstates.size() == 0) {
-                priorityLogic = 2;
+                if (infostates.size() == 0) {
+                    priorityLogic = 3;
+                } else {
+                    priorityLogic = 2;
+                }
             } else {
                 priorityLogic = 1;
             }

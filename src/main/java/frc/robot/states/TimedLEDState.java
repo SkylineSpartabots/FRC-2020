@@ -82,7 +82,7 @@ public interface TimedLEDState {
         public static StaticLEDState kHopperFull = new StaticLEDState(LEDState.kYellow, 3);
         public static StaticLEDState kDisabled = new StaticLEDState(LEDState.kOff, 1);
         public static StaticLEDState kEnabled = new StaticLEDState(LEDState.kWhite, 3);
-        public static StaticLEDState kBasic = new StaticLEDState(LEDState.kSpartaGreen, 3);
+        public static StaticLEDState kBasic = new StaticLEDState(LEDState.kSpartaGreen, 4);
 
         LEDState mStaticState = new LEDState(0.0, 0.0, 0.0);
         int mPriority;
