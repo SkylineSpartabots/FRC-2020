@@ -14,7 +14,6 @@ import java.util.List;
 import com.ctre.phoenix.CANifier;
 import com.ctre.phoenix.CANifier.LEDChannel;
 
-import edu.wpi.cscore.CameraServerJNI.TelemetryKind;
 import edu.wpi.first.wpilibj.Timer;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
@@ -47,7 +46,7 @@ public class LED extends Subsystem {
     private ArrayList<TimedLEDState> infostates = new ArrayList<>();
     private List<ArrayList<TimedLEDState>> allStates = Arrays.asList(errorstates, warningstates, infostates);
     private LEDState mDesiredLEDState = new LEDState(0.0, 0.0, 0.0);
-    private int priorityLogic;
+    private int priorityLogic = 0;
     private int cycleLogic = 0;
     private double cycletime = 1000;
 
@@ -81,6 +80,7 @@ public class LED extends Subsystem {
                 mCanifier.setLEDOutput(0, LEDChannel.LEDChannelA);
                 mCanifier.setLEDOutput(0, LEDChannel.LEDChannelB);
                 mCanifier.setLEDOutput(0, LEDChannel.LEDChannelC);
+                addStateToQueue(TimedLEDState.StaticLEDState.kBasic);
                 logics(startTime);
             }
 
