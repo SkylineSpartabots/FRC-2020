@@ -35,5 +35,11 @@ public class Ports {
 	public static final int HOPPER_RIGHT_BELT = 0;
 	public static final int HOPPER_BALL_HOLDER = 0;
 	public static final int CANIFIER_ID = 0;
-	public static final int PCM_ID = 0;
+    public static final int PCM_ID = 0;
+    
+	public static final int HORIZONTAL_RELEASE_SOLENOID = 0;
+	public static final int LEFT_VERTICAL_RELEASE_SOLENOID = 0;
+	public static final int RIGHT_VERTICAL_RELEASE_SOLENOID = 0;
+	public static final int LEFT_CLIMB_MOTOR = 0;
+	public static final int RIGHT_CLIMB_MOTOR = 0;
 }
