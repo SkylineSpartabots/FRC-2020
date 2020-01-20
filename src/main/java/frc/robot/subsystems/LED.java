@@ -22,6 +22,7 @@ import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 import frc.robot.states.LEDState;
 import frc.robot.states.TimedLEDState;
+import frc.robot.states.TimedLEDState.StaticLEDState;
 
 /**
  * Add your docs here.
@@ -37,10 +38,10 @@ public class LED extends Subsystem {
         return mInstance;
     }
 
-    // hardware
+    //hardware
     private final CANifier mCanifier;
 
-    // states
+    //states
     private ArrayList<TimedLEDState> errorstates = new ArrayList<>();
     private ArrayList<TimedLEDState> warningstates = new ArrayList<>();
     private ArrayList<TimedLEDState> infostates = new ArrayList<>();
@@ -115,6 +116,7 @@ public class LED extends Subsystem {
         }
         if (Timer.getFPGATimestamp() - startTime > cycletime) {
             startTime = Timer.getFPGATimestamp();
+            removeLED();
             cycleLogic++;
             if (allStates.get(priorityLogic).size() < cycleLogic) {
                 cycleLogic = 0;
@@ -124,6 +126,13 @@ public class LED extends Subsystem {
 
     public void updateLED(double timestamp) {
         allStates.get(priorityLogic).get(cycleLogic).getCurrentLEDState(mDesiredLEDState, timestamp);
+    }
+
+    public void removeLED() {
+        allStates.get(priorityLogic).get(cycleLogic).upTimeout();
+        if(allStates.get(priorityLogic).get(cycleLogic).isTimeout()) {
+            removeFromQueue(allStates.get(priorityLogic).get(cycleLogic));
+        }
     }
 
     @Override
