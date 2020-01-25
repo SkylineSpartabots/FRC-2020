@@ -20,6 +20,8 @@ import frc.lib.controllers.Xbox;
 import frc.lib.sensors.ColorSensor;
 import frc.lib.sensors.ColorSensor.Colors;
 import frc.lib.util.CrashTracker;
+import frc.robot.auto.modes.AutoModeBase;
+import frc.robot.auto.modes.ExampleMode;
 import frc.robot.loops.Looper;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Limelight;

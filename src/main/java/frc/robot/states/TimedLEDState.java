@@ -13,8 +13,10 @@ package frc.robot.states;
 public interface TimedLEDState {
     void getCurrentLEDState(LEDState desiredState, double timestamp);
     int getPriority();
+    void upTimeout();
+    boolean isTimeout();
 
-    class FlashingLEDState implements TimedLEDState {
+    public class FlashingLEDState implements TimedLEDState {
 
         public static FlashingLEDState kBootFault = new FlashingLEDState(LEDState.kRed, 0.75, 1);
         public static FlashingLEDState kRuntimeFault = new FlashingLEDState(LEDState.kRed, 0.25, 1);
@@ -37,6 +39,8 @@ public interface TimedLEDState {
         LEDState mStateTwo = new LEDState(0.0, 0.0, 0.0);
         double mDuration;
         int mPriority;
+        int mTimeoutMax;
+        int mCounter;
 
         public FlashingLEDState(LEDState stateOne, LEDState stateTwo, double duration, int priority) {
             mStateOne = stateOne;
@@ -47,6 +51,16 @@ public interface TimedLEDState {
 
         public FlashingLEDState(LEDState state, double duration, int priority) {
             this(LEDState.kOff, state, duration, priority);
+            switch(priority) {
+                case 1:
+                    mTimeoutMax = 5;
+                case 2:
+                    mTimeoutMax = 5;
+                case 3:
+                    mTimeoutMax = 1;
+                default:
+                    mTimeoutMax = -1;
+            }
         }
 
         /**
@@ -72,9 +86,19 @@ public interface TimedLEDState {
             return mPriority - 1;
         }
 
+        @Override
+        public void upTimeout() {
+            mCounter++;
+        }
+
+        @Override
+        public boolean isTimeout() {
+            return mTimeoutMax == -1 ? false : mCounter >= mTimeoutMax;
+        }
+
     }
 
-    class StaticLEDState implements TimedLEDState {
+    public class StaticLEDState implements TimedLEDState {
 
         public static StaticLEDState kEmergency = new StaticLEDState(LEDState.kRed, 1);
         public static StaticLEDState kShooting = new StaticLEDState(LEDState.kGreen, 3);
@@ -82,14 +106,26 @@ public interface TimedLEDState {
         public static StaticLEDState kHopperFull = new StaticLEDState(LEDState.kYellow, 3);
         public static StaticLEDState kDisabled = new StaticLEDState(LEDState.kOff, 1);
         public static StaticLEDState kEnabled = new StaticLEDState(LEDState.kWhite, 3);
-        public static StaticLEDState kBasic = new StaticLEDState(LEDState.kSpartaGreen, 3);
+        public static StaticLEDState kBasic = new StaticLEDState(LEDState.kSpartaGreen, 4);
 
         LEDState mStaticState = new LEDState(0.0, 0.0, 0.0);
         int mPriority;
+        int mTimeoutMax;
+        int mCounter;
 
         public StaticLEDState(LEDState staticState, int priority) {
             mStaticState.copyFrom(staticState);
             mPriority = priority;
+            switch(priority) {
+                case 1:
+                    mTimeoutMax = 5;
+                case 2:
+                    mTimeoutMax = 10;
+                case 3:
+                    mTimeoutMax = 15;
+                default:
+                    mTimeoutMax = -1;
+            }
         }
 
         /**
@@ -109,6 +145,15 @@ public interface TimedLEDState {
             return mPriority - 1;
         }
 
+        @Override
+        public void upTimeout() {
+            mCounter++;
+        }
+
+        @Override
+        public boolean isTimeout() {
+            return mTimeoutMax == -1 ? false : mCounter >= mTimeoutMax;
+        }
     }
 
 
