@@ -8,7 +8,7 @@
 package frc.robot.auto;
 
 
-public class AutoModeEndedException extends Exception {
+public class ModeEndedException extends Exception {
 
     private static final long serialVersionUID = 4044799049301595201L;
 }

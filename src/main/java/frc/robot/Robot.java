@@ -18,11 +18,15 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
 import frc.lib.sensors.ColorSensor;
+import frc.lib.sensors.Navx;
 import frc.lib.sensors.ColorSensor.Colors;
 import frc.lib.util.CrashTracker;
+import frc.lib.util.TelemetryUtil;
+import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.loops.Looper;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Limelight;
+import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.SubsystemManager;
 
 
@@ -39,12 +43,13 @@ public class Robot extends TimedRobot {
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
   //private static Drive mDrive;
-  private static Limelight mLimelight;
-  private static SubsystemManager subsystems;
+  //private static Limelight mLimelight;
+  //private static SubsystemManager subsystems;
   private NetworkTable limelightTable;
   private Looper enabledLooper, disabledLooper;
   private Xbox mDriveController;
-  private ColorSensor colorSensor;
+  private Navx gyro;
+  //private ColorSensor colorSensor;
 
 
   /**
@@ -58,16 +63,17 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Auto choices", m_chooser);
     enabledLooper = new Looper();
     disabledLooper = new Looper(); 
-    mLimelight = new Limelight(Constants.kShooterLimelightConstants);
-    colorSensor = new ColorSensor();
+    gyro = Navx.getInstance();
+    //mLimelight = new Limelight(Constants.kShooterLimelightConstants);
+    //colorSensor = new ColorSensor();
     //mDrive = Drive.getInstance();
 
-    subsystems = SubsystemManager.getInstance();
+    //subsystems = SubsystemManager.getInstance();
     mDriveController = new Xbox(0);
-    subsystems.setSubsystems(mLimelight);
+    /*subsystems.setSubsystems(mLimelight);
 
     subsystems.registerEnabledLoops(enabledLooper);
-    subsystems.registerDisabledLoops(disabledLooper);
+    subsystems.registerDisabledLoops(disabledLooper);*/
 
     //mDrive.zeroSensors();
   }
@@ -82,8 +88,8 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
-    SmartDashboard.putNumber("Distance Vision", mLimelight.getDistance());
-    SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
+    /*SmartDashboard.putNumber("Distance Vision", mLimelight.getDistance());
+    SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());*/
   }
 
   /**
@@ -126,6 +132,7 @@ public class Robot extends TimedRobot {
     try {
       disabledLooper.stop();
       enabledLooper.start();
+      gyro.reset();
       //SmartDashboard.putBoolean("Auto", false);
 
       //needs to be commented out
@@ -144,11 +151,18 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     try {
       mDriveController.update();
-      Colors color = colorSensor.getColor();
+      /*if(mDriveController.aButton.isBeingPressed()) {
+        Shooter.getInstance().setOpenLoop(0.2);
+      } else {
+        Shooter.getInstance().setOpenLoop(0);
+      }*/
+
+
+      TelemetryUtil.print("Gyro: " + gyro.getHeading(), PrintStyle.INFO, false);
 
       //System.out.println("R: " + colorSensor.getRaw().red + " G: " + colorSensor.getRaw().green + " B: " + colorSensor.getRaw().blue);
     
-      switch(color) {
+      /*switch(color) {
         case BLUE:
           System.out.println("Blue");
           break;
@@ -164,7 +178,7 @@ public class Robot extends TimedRobot {
         case UNKNOWN:
           System.out.println("Unk");
           break;
-      }
+      }*/
 
 
       //mDrive.setCurvatureDrive(mDriveController.getY(Hand.kLeft), -mDriveController.getX(Hand.kRight), false);

@@ -9,25 +9,25 @@ package frc.robot.auto.modes;
 
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
-import frc.robot.auto.AutoModeEndedException;
+import frc.robot.auto.ModeEndedException;
 import frc.robot.auto.actions.Action;
 
 /**
  * Add your docs here.
  */
-public abstract class AutoModeBase {
+public abstract class ModeBase {
     protected final double mUpdateRate = 1.0/50.0;
     protected boolean mActive = false;
     protected boolean mIsInterrupted = false;
 
-    protected abstract void routine() throws AutoModeEndedException;
+    protected abstract void routine() throws ModeEndedException;
 
     public void run() {
         mActive = true;
 
         try {
             routine();
-        } catch(AutoModeEndedException e) {
+        } catch(ModeEndedException e) {
             TelemetryUtil.print("Auto mode ended early", PrintStyle.ERROR, false);
             return;
         }
@@ -57,15 +57,15 @@ public abstract class AutoModeBase {
         return mActive;
     }
 
-    public boolean isActiveWithThrow() throws AutoModeEndedException {
+    public boolean isActiveWithThrow() throws ModeEndedException {
         if(!isActive()) {
-            throw new AutoModeEndedException();
+            throw new ModeEndedException();
         }
 
         return isActive();
     }
 
-    public void runAction(Action action) throws AutoModeEndedException {
+    public void runAction(Action action) throws ModeEndedException {
         isActiveWithThrow();
         long waitTime = (long) (mUpdateRate * 1000.0);
 

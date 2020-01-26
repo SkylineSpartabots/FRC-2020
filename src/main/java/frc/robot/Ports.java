@@ -21,8 +21,8 @@ public class Ports {
 	public static final int INTAKE_MOTOR_ID = 0;
 
 	public static final int SHOOTER_HOOD_ID = 0;
-	public static final int SHOOTER_LEFT_SHOOT_ID = 0;
-	public static final int SHOOTER_RIGHT_SHOOT_ID = 0;
+	public static final int SHOOTER_LEFT_SHOOT_ID = 12;
+	public static final int SHOOTER_RIGHT_SHOOT_ID = 13;
 	public static final int SHOOTER_INDEX_ID = 0;
 	public static final int SHOOTER_RAMP_SOLENOID_PORT = 0;
 

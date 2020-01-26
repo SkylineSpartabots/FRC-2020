@@ -7,21 +7,17 @@
 
 package frc.robot.auto.modes;
 
-import frc.robot.auto.AutoModeEndedException;
-import frc.robot.auto.actions.DriveOpenLoopAction;
-import frc.robot.auto.actions.LambdaAction;
-import frc.robot.auto.actions.LambdaAction.VoidSupplier;
-import frc.robot.subsystems.Intake;
+import frc.lib.util.TelemetryUtil;
+import frc.lib.util.TelemetryUtil.PrintStyle;
+import frc.robot.auto.ModeEndedException;
 
 /**
  * Add your docs here.
  */
-public class ExampleMode extends AutoModeBase {
+public class DoNothing extends ModeBase {
 
     @Override
-    protected void routine() throws AutoModeEndedException {
-        // TODO Auto-generated method stub
-        runAction(new DriveOpenLoopAction(1.0, 1.0, 5));
-    
+    protected void routine() throws ModeEndedException {
+        TelemetryUtil.print("Big woop, I am doing absolutely nothing", PrintStyle.INFO, true);
     }
 }

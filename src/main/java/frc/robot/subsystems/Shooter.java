@@ -45,7 +45,7 @@ public class Shooter extends Subsystem {
     private final LazySparkMax mMasterShooter, mSlaveShooter;
     private final CANEncoder mShooterEncoder;
     //private final LazyTalonSRX mHoodMotor, mIndexer;
-    private final Solenoid mRampSolenoid;
+    //private final Solenoid mRampSolenoid;
 
     //controllers
     private final CANPIDController mPIDFController;
@@ -118,7 +118,6 @@ public class Shooter extends Subsystem {
              mMasterShooter, true);
         configSparkForShooter(mSlaveShooter);
 
-
         mShooterEncoder = mMasterShooter.getEncoder();
         configEncoderForShooter(mShooterEncoder, false);
 
@@ -129,7 +128,7 @@ public class Shooter extends Subsystem {
         mSlaveShooter.burnFlash();
     
 
-        mRampSolenoid = new Solenoid(Ports.SHOOTER_RAMP_SOLENOID_PORT);
+        //mRampSolenoid = new Solenoid(Ports.SHOOTER_RAMP_SOLENOID_PORT);
     }
 
     /**
@@ -155,7 +154,7 @@ public class Shooter extends Subsystem {
      */
     @Override
     public void readPeriodicInputs() {
-        mPeriodicIO.velocity = mShooterEncoder.getVelocity();
+        mPeriodicIO.velocity = 
         mPeriodicIO.velocity_in_ticks_per_100ms = 42.0 / 600.0 * mPeriodicIO.velocity;
         mPeriodicIO.voltage = mMasterShooter.getAppliedOutput() * mMasterShooter.getBusVoltage(); // fraction of voltage used * voltage coming in
 

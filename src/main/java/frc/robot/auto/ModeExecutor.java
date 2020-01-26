@@ -13,17 +13,17 @@ import frc.robot.auto.modes.AutoModeBase;
 /**
  * Add your docs here.
  */
-public class AutoModeExecutor {
-    private static AutoModeExecutor mInstance = null;
+public class ModeExecutor {
+    private static ModeExecutor mInstance = null;
 
     private AutoModeBase mAutoMode = null;
     private Thread mThread = null;
 
-    public AutoModeExecutor() {}
+    public ModeExecutor() {}
 
-    public static AutoModeExecutor getInstance() {
+    public static ModeExecutor getInstance() {
         if(mInstance == null) {
-            mInstance = new AutoModeExecutor();
+            mInstance = new ModeExecutor();
         }
 
         return mInstance;

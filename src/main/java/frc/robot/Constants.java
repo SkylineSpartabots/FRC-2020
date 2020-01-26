@@ -71,10 +71,10 @@ public class Constants {
 	public static final LimelightConstants kShooterLimelightConstants = new LimelightConstants();
 	public static final double kQuickStopThreshold = 0;
 	public static final int kQuickStopAlpha = 0;
-	public static final double kShooterkP = 0;
-	public static final double kShooterkI = 0;
+	public static final double kShooterkP = 0.09;
+	public static final double kShooterkI = 0.00008;
 	public static final double kShooterkD = 0;
-	public static final double kShooterkF = 0;
+	public static final double kShooterkF = 0.03;
 	public static final double kShooterIZone = 0;
 	public static final double kShooterStartOnTargetRpm = 0;
 	public static final double kShooterStopOnTargetRpm = 0;
