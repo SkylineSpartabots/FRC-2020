@@ -23,6 +23,8 @@ public class LEDState {
     public static final LEDState kYellow = new LEDState(0.5, 0.5, 0.0);
     public static final LEDState kOrange  = new LEDState(0.79, 0.21, 0.0);
 
+    public static final LEDState kSpartaGreen = new LEDState(0.6352, 0.7058, 0.6588);
+
     public double red;
     public double green;
     public double blue;
