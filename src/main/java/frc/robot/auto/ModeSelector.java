@@ -15,6 +15,7 @@ import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.auto.modes.DoNothing;
+import frc.robot.auto.modes.tests.DriveConfiguration;
 
 public class ModeSelector {
 
@@ -116,7 +117,7 @@ public class ModeSelector {
             case FULL:
                 //return 
             case DRIVE_CONFIGURATION:
-                //return
+                return Optional.of(new DriveConfiguration());
             case DRIVE_CHARACTERIZATION:
                 //return
             case DRIVE:

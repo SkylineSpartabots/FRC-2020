@@ -7,21 +7,25 @@
 
 package frc.robot.subsystems;
 
+import java.util.ArrayList;
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.DemandType;
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
+import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.control.LookAhead;
 import frc.lib.control.Path;
 import frc.lib.control.PathFollower;
 import frc.lib.drivers.LazyTalonFX;
+import frc.lib.drivers.MotorChecker;
 import frc.lib.drivers.PheonixUtil;
+import frc.lib.drivers.TalonFXChecker;
 import frc.lib.drivers.TalonFXFactory;
 import frc.lib.drivers.TalonFXUtil;
 import frc.lib.geometry.Pose2d;
@@ -29,19 +33,18 @@ import frc.lib.geometry.Rotation2d;
 import frc.lib.geometry.Twist2d;
 import frc.lib.sensors.Navx;
 import frc.lib.util.DriveSignal;
+import frc.lib.util.PIDController;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.Util;
 import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Constants;
 import frc.robot.Kinematics;
 import frc.robot.Ports;
+import frc.robot.Robot;
 import frc.robot.RobotState;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 
-/**
- * Add your docs here.
- */
 public class Drive extends Subsystem {
 
     private static Drive mInstance = null;
@@ -65,7 +68,8 @@ public class Drive extends Subsystem {
     // controllers
     private PathFollower mPathFollower;
     private Path mCurrentPath;
-    private DifferentialDrive mOpenLoopController;
+    private PIDController mAlignmentController;
+    
 
     // control states
     private DriveControlState mDriveControlState;
@@ -86,11 +90,13 @@ public class Drive extends Subsystem {
         PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
                 falcon.getName() + " failed to set voltage compensation", true);
 
-        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 35, 0, 0)),
+        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 35, 35, 0)),
                 falcon.getName() + " failed to set output current limit", true);
 
-        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true, 35, 0, 0)),
+        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true, 60, 60, 0)),
                 falcon.getName() + " failed to set input current limit", true);
+        
+        
     }
 
     /**
@@ -101,6 +107,9 @@ public class Drive extends Subsystem {
      */
     private synchronized void configureMasterForDrive(LazyTalonFX falcon, InvertType inversion, boolean sensorPhase) {
         configureMotorForDrive(falcon, inversion);
+        PheonixUtil.checkError(falcon.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, Constants.kTimeOutMs),
+            falcon.getName() + " failed to set feedback sensor on init", true);
+
         PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048 / Constants.kWheelDiameter) / Math.PI, 0,
                 Constants.kTimeOutMs), falcon.getName() + " failed to set sensor coeffecient", true);
         falcon.setSensorPhase(sensorPhase);
@@ -112,21 +121,24 @@ public class Drive extends Subsystem {
         mLeftMaster = TalonFXFactory.createDefaultFalcon("Drive Left Master", Ports.DRIVE_LEFT_MASTER_ID);
         configureMasterForDrive(mLeftMaster, InvertType.None, false);
 
-        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID,
-                Ports.DRIVE_LEFT_MASTER_ID);
+        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
         configureMotorForDrive(mLeftSlave, InvertType.FollowMaster);
+        mLeftSlave.setMaster(mLeftMaster);
 
         mRightMaster = TalonFXFactory.createDefaultFalcon("Drive Right Master", Ports.DRIVE_RIGHT_MASTER_ID);
         configureMasterForDrive(mRightMaster, InvertType.InvertMotorOutput, false);
 
-        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID,
-                Ports.DRIVE_RIGHT_MASTER_ID);
+        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
         configureMotorForDrive(mRightSlave, InvertType.FollowMaster);
+        mRightSlave.setMaster(mRightMaster);
 
         mNavx = Navx.getInstance();
 
-        mIsBrakeMode = false;
-        setBrakeMode(true);
+
+        mAlignmentController = new PIDController(0.01, 0.003, 0, () -> Robot.getXTargetOffset(), 5);
+
+        mIsBrakeMode = true;
+        setBrakeMode(false);
 
         setOpenLoop(DriveSignal.NEUTRAL);
     }
@@ -137,19 +149,12 @@ public class Drive extends Subsystem {
     private static class PeriodicIO {
         // inputs
         public double timestamp;
-        /**position of left encoder (raw) */
         public double left_position;
-        /**position of right encoder (raw) */
         public double right_position;
-        /**absolute change in left encoder distance (raw) */
         public double left_distance;
-        /**absolute change in right encoder distance (raw) */
         public double right_distance;
-        /**left encoder distance (raw) per 100ms */
         public double left_velocity_per_100ms;
-        /**right encoder distance (raw) per 100ms */
         public double right_velocity_per_100ms;
-        /**current direction of robot using navx */
         public Rotation2d heading = Rotation2d.identity();
         public Pose2d error = Pose2d.identity();
 
@@ -177,8 +182,8 @@ public class Drive extends Subsystem {
         double prevLeftPosition = mPeriodicIO.left_position;
         double prevRightPosition = mPeriodicIO.right_position;
 
-        mPeriodicIO.left_position = mLeftMaster.getSelectedSensorPosition(0);
-        mPeriodicIO.right_position = mRightMaster.getSelectedSensorPosition(0);
+        mPeriodicIO.left_position = mLeftMaster.getSelectedSensorPosition();
+        mPeriodicIO.right_position = mRightMaster.getSelectedSensorPosition();
 
         double deltaLeftPosition = mPeriodicIO.left_position - prevLeftPosition;
         double deltaRightPosition = mPeriodicIO.right_position - prevRightPosition;
@@ -186,8 +191,8 @@ public class Drive extends Subsystem {
         mPeriodicIO.left_distance += deltaLeftPosition;
         mPeriodicIO.right_distance += deltaRightPosition;
 
-        mPeriodicIO.left_velocity_per_100ms = mLeftMaster.getSelectedSensorVelocity(0);
-        mPeriodicIO.right_velocity_per_100ms = mRightMaster.getSelectedSensorVelocity(0);
+        mPeriodicIO.left_velocity_per_100ms = mLeftMaster.getSelectedSensorVelocity();
+        mPeriodicIO.right_velocity_per_100ms = mRightMaster.getSelectedSensorVelocity();
 
         mPeriodicIO.heading = Rotation2d.fromDegrees(mNavx.getHeading()).rotateBy(mGyroOffset);
 
@@ -205,8 +210,8 @@ public class Drive extends Subsystem {
     @Override
     public void writePeriodicOutputs() {
         if (mDriveControlState == DriveControlState.OPEN_LOOP) {
-            mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward, 0.0);
-            mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward, 0.0);
+            mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand);
+            mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand);
         } else if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
             mLeftMaster.set(ControlMode.Velocity, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward,
                     mPeriodicIO.left_feedforward + Constants.driveVelocityKd * mPeriodicIO.left_accel / 1023.0);
@@ -214,7 +219,9 @@ public class Drive extends Subsystem {
             mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
                     mPeriodicIO.right_feedforward + Constants.driveVelocityKd * mPeriodicIO.right_accel / 1023.0);
         }
+        
     }
+
 
     /**
      * registers drive train's loop to subsystem manager
@@ -227,14 +234,14 @@ public class Drive extends Subsystem {
             public void onStart(double timestamp) {
                 synchronized (Drive.this) {
                     stop();
-                    setBrakeMode(true);
+                    setBrakeMode(false);
                 }
             }
 
             @Override
             public void onLoop(double timestamp) {
                 synchronized (Drive.this) {
-                    handleFaults();
+                    //handleFaults();
                     switch (mDriveControlState) {
                     case OPEN_LOOP:
                         break;
@@ -243,6 +250,8 @@ public class Drive extends Subsystem {
                             updatePathFollower(timestamp);
                         }
                         break;
+                    case ALIGNMENT_TURN:
+                        updateAlignmentController();
                     default:
                         TelemetryUtil.print("Drive in an unexpected control state", PrintStyle.ERROR, false);
                         break;
@@ -312,14 +321,13 @@ public class Drive extends Subsystem {
 
 
     /**
-     * 
+     *  
      * Sets a drive signal to the motors. If the robot is not in a driving state, it will turn break mode on.
      * @param signal drive signal to set percent power to motors
      */
     public synchronized void setOpenLoop(DriveSignal signal) {
         if (mDriveControlState != DriveControlState.OPEN_LOOP) {
-            setBrakeMode(true);
-            // setStatorCurrentLimit(0);
+            setBrakeMode(false);
             mDriveControlState = DriveControlState.OPEN_LOOP;
         }
 
@@ -435,6 +443,28 @@ public class Drive extends Subsystem {
         }
 
         setOpenLoop(new DriveSignal(Util.limit(leftMotorOutput, -1.0, 1.0), Util.limit(rightMotorOutput, -1.0, 1.0)));
+        
+    }
+
+
+    public synchronized void setTargetAlignment() {
+        if(mDriveControlState != DriveControlState.ALIGNMENT_TURN) {
+            setBrakeMode(true);
+            setStatorCurrentLimit(35);
+            mAlignmentController.reset();
+            mDriveControlState = DriveControlState.ALIGNMENT_TURN;
+        }    
+    }
+
+
+    private synchronized void updateAlignmentController() {
+        if(mDriveControlState == DriveControlState.ALIGNMENT_TURN) {
+            double output = mAlignmentController.getOutput();
+            mPeriodicIO.left_demand = output;
+            mPeriodicIO.right_demand = -output;
+            mPeriodicIO.left_feedforward = 0.0;
+            mPeriodicIO.right_feedforward = 0.0;
+        }
     }
 
     /**
@@ -574,7 +604,8 @@ public class Drive extends Subsystem {
      */
     public synchronized void setBrakeMode(boolean enableBrake) {
         if (enableBrake != mIsBrakeMode) {
-            NeutralMode mode = enableBrake ? NeutralMode.Brake : NeutralMode.Brake;
+            TelemetryUtil.print("Is Brake Mode: " + enableBrake, PrintStyle.ERROR, true);
+            NeutralMode mode = enableBrake ? NeutralMode.Brake : NeutralMode.Coast;
             mLeftMaster.setNeutralMode(mode);
             mLeftSlave.setNeutralMode(mode);
             mRightMaster.setNeutralMode(mode);
@@ -620,7 +651,7 @@ public class Drive extends Subsystem {
      * enum to keep track of drive control status
      */
     private enum DriveControlState {
-        OPEN_LOOP, PATH_FOLLOWING;
+        OPEN_LOOP, PATH_FOLLOWING, ALIGNMENT_TURN;
     }
 
     /**
@@ -648,6 +679,8 @@ public class Drive extends Subsystem {
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Is Drive Overheathing", isDriveOverheating());
+        SmartDashboard.putNumber("Left Drive Velocity", getLeftLinearVelocity());
+        SmartDashboard.putNumber("Right Drive Velocity", getRightLinearVelocity());
     }
 
     
@@ -656,6 +689,42 @@ public class Drive extends Subsystem {
     public boolean checkSystem() {
 
         return false;
+    }
+
+
+    public void testDriveConfiguration() {
+
+        TalonFXChecker.testMotors(this,
+            new ArrayList<MotorChecker.MotorConfig<LazyTalonFX>>() {    
+            private static final long serialVersionUID = 1L;
+
+                    {
+                    add(new MotorChecker.MotorConfig<>(mLeftMaster));
+                    add(new MotorChecker.MotorConfig<>(mLeftSlave));
+                }
+            }, new MotorChecker.TesterConfig() {
+                {
+                    mOutputPercent = 0.3;
+                    mRPMSupplier = () -> mLeftMaster.getSelectedSensorVelocity(0);
+                }
+            });
+
+
+        TalonFXChecker.testMotors(this,
+            new ArrayList<MotorChecker.MotorConfig<LazyTalonFX>>() {
+            private static final long serialVersionUID = 1L;
+
+                    {
+                    add(new MotorChecker.MotorConfig<>(mRightMaster));
+                    add(new MotorChecker.MotorConfig<>(mRightSlave));
+                }
+            }, new MotorChecker.TesterConfig() {
+                {
+                    mRPMSupplier = () -> mRightMaster.getSelectedSensorVelocity(0);
+                    mOutputPercent = 0.3;
+                }
+            });
+
     }
 
 }

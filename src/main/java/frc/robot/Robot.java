@@ -8,6 +8,7 @@
 package frc.robot;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -17,97 +18,179 @@ import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
+import frc.lib.geometry.Rotation2d;
 import frc.lib.sensors.ColorSensor;
 import frc.lib.sensors.Navx;
 import frc.lib.sensors.ColorSensor.Colors;
 import frc.lib.util.CrashTracker;
+import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
+import frc.lib.util.Util;
 import frc.lib.util.TelemetryUtil.PrintStyle;
+import frc.robot.auto.ModeExecutor;
+import frc.robot.auto.ModeSelector;
+import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.loops.Looper;
+import frc.robot.subsystems.Climb;
 import frc.robot.subsystems.Drive;
+import frc.robot.subsystems.Hopper;
+import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.LED;
 import frc.robot.subsystems.Limelight;
+import frc.robot.subsystems.RobotStateEstimator;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Spinner;
 import frc.robot.subsystems.SubsystemManager;
+import frc.robot.subsystems.Limelight.LedMode;
 
 
-/**
- * The VM is configured to automatically run this class, and to call the
- * functions corresponding to each mode, as described in the TimedRobot
- * documentation. If you change the name of this class or the package after
- * creating this project, you must also update the build.gradle file in the
- * project.
- */
 public class Robot extends TimedRobot {
-  private static final String kDefaultAuto = "Default";
-  private static final String kCustomAuto = "My Auto";
-  private String m_autoSelected;
-  private final SendableChooser<String> m_chooser = new SendableChooser<>();
-  //private static Drive mDrive;
-  //private static Limelight mLimelight;
-  //private static SubsystemManager subsystems;
-  private NetworkTable limelightTable;
-  private Looper enabledLooper, disabledLooper;
-  private Xbox mDriveController;
-  private Navx gyro;
-  //private ColorSensor colorSensor;
+
+  //Loopers
+  private final Looper mEnabledLooper = new Looper();
+  private final Looper mDisabledLooper = new Looper();
+
+  //Drive team Controllers
+  private final Xbox mDriveController = new Xbox(0);
+  private final Xbox mOperatorController = new Xbox(1);
 
 
-  /**
-   * This function is run when the robot is first started up and should be
-   * used for any initialization code.
-   */
+  //Subsystems
+  private final SubsystemManager mSubsystemManager = SubsystemManager.getInstance();
+
+  //private final Intake mIntake = Intake.getInstance();
+  //private final Hopper mHopper = Hopper.getInstance();
+  //private final Spinner mSpinner = Spinner.getInstance();
+  //private final Climb mClimb = Climb.getInstance();
+  //private final LED mLED = LED.getInstance();
+  //private final Shooter mShooter = Shooter.getInstance();
+  private final Drive mDrive = Drive.getInstance();
+
+  //private final RobotState mRobotState = RobotState.getInstance();
+  private static Limelight mLimelight;
+  //private final RobotStateEstimator mRobotStateEstimator = RobotStateEstimator.getInstance();
+
+
+  private ModeSelector mModeSelector = new ModeSelector();
+  private ModeExecutor mAutoModeExecutor;
+  private ModeExecutor mTestModeExecutor;
+
+
+
+  Robot() {
+    CrashTracker.logRobotConstruction();
+  }
+
+
   @Override
   public void robotInit() {
-    m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
-    m_chooser.addOption("My Auto", kCustomAuto);
-    SmartDashboard.putData("Auto choices", m_chooser);
-    enabledLooper = new Looper();
-    disabledLooper = new Looper(); 
-    gyro = Navx.getInstance();
-    //mLimelight = new Limelight(Constants.kShooterLimelightConstants);
-    //colorSensor = new ColorSensor();
-    //mDrive = Drive.getInstance();
+    try {
+      CrashTracker.logRobotInit();
 
-    //subsystems = SubsystemManager.getInstance();
-    mDriveController = new Xbox(0);
-    /*subsystems.setSubsystems(mLimelight);
+      mLimelight = new Limelight(Constants.kShooterLimelightConstants);
 
-    subsystems.registerEnabledLoops(enabledLooper);
-    subsystems.registerDisabledLoops(disabledLooper);*/
+      mSubsystemManager.setSubsystems(
+        mDrive,
+        mLimelight
+      );
 
-    //mDrive.zeroSensors();
+      mSubsystemManager.registerEnabledLoops(mEnabledLooper);
+      mSubsystemManager.registerDisabledLoops(mDisabledLooper);
+
+      mDrive.setHeading(Rotation2d.identity());
+      
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
   }
 
-  /**
-   * This function is called every robot packet, no matter the mode. Use
-   * this for items like diagnostics that you want ran during disabled,
-   * autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before
-   * LiveWindow and SmartDashboard integrated updating.
-   */
+
   @Override
   public void robotPeriodic() {
-    /*SmartDashboard.putNumber("Distance Vision", mLimelight.getDistance());
-    SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());*/
+    try {
+      SmartDashboard.putNumber("Left Drive Velocity", mDrive.getLeftLinearVelocity());
+      SmartDashboard.putNumber("Right Drive Velocity", mDrive.getRightLinearVelocity());
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
+    
   }
 
-  /**
-   * This autonomous (along with the chooser code above) shows how to select
-   * between different autonomous modes using the dashboard. The sendable
-   * chooser code works with the Java SmartDashboard. If you prefer the
-   * LabVIEW Dashboard, remove all of the chooser code and uncomment the
-   * getString line to get the auto name from the text box below the Gyro
-   *
-   * <p>You can add additional auto modes by adding additional comparisons to
-   * the switch structure below with additional strings. If using the
-   * SendableChooser make sure to add them to the chooser code above as well.
-   */
+  @Override
+  public void disabledInit() {
+    try {
+      CrashTracker.logDisabledInit();
+      mEnabledLooper.stop();
+
+      if(mAutoModeExecutor != null) {
+        mAutoModeExecutor.stop();
+      }
+
+      if(mTestModeExecutor != null) {
+        mTestModeExecutor.stop();
+      }
+
+      
+
+      //Zero sensors accordingly
+
+      mModeSelector.reset();
+      mModeSelector.updateModeSelection();
+      mAutoModeExecutor = new ModeExecutor();
+      mTestModeExecutor = new ModeExecutor();
+
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
+  }
+
+  @Override
+  public void disabledPeriodic() {
+    try {
+
+      mModeSelector.updateModeSelection();
+
+      Optional<AutoModeBase> autoMode = mModeSelector.getAutoMode();
+      Optional<AutoModeBase> testMode = mModeSelector.getTestMode();
+
+      if(autoMode.isPresent() && autoMode.get() != mAutoModeExecutor.getAutoMode()) {
+        System.out.println("Set auto mode to: " + autoMode.get().getClass().toString());
+        mAutoModeExecutor.setAutoMode(autoMode.get());
+      }
+
+      if(testMode.isPresent() && testMode.get() != mTestModeExecutor.getAutoMode()) {
+        System.out.println("Set test mode to: " + testMode.get().getClass().toString());
+        mTestModeExecutor.setAutoMode(testMode.get());
+      }
+
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
+  }
+
   @Override
   public void autonomousInit() {
-    m_autoSelected = m_chooser.getSelected();
-    // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
-    System.out.println("Auto selected: " + m_autoSelected);
+    try {
+      CrashTracker.logAutoInit();
+      mDisabledLooper.stop();
+
+
+      //Zero sensors and robot state accordingly
+
+      mTestModeExecutor.stop();
+      mAutoModeExecutor.start();
+
+      mEnabledLooper.start();
+
+
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
     
   }
 
@@ -116,28 +199,23 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void autonomousPeriodic() {
-    switch (m_autoSelected) {
-      case kCustomAuto:
-        // Put custom auto code here
-        break;
-      case kDefaultAuto:
-      default:
-        // Put default auto code here
-        break;
-    }
+    
   }
 
   @Override
   public void teleopInit() {
     try {
-      disabledLooper.stop();
-      enabledLooper.start();
-      gyro.reset();
-      //SmartDashboard.putBoolean("Auto", false);
+      mDisabledLooper.stop();
+      if(mTestModeExecutor != null) {
+        mTestModeExecutor.stop();
+      }
 
-      //needs to be commented out
-      //drive.zeroSensors();
-      //elevator.zeroSensors();
+      if(mAutoModeExecutor != null) {
+        mAutoModeExecutor.stop();
+      }
+
+      mEnabledLooper.start();
+      mLimelight.setLed(LedMode.ON);
       
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -151,40 +229,13 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     try {
       mDriveController.update();
-      /*if(mDriveController.aButton.isBeingPressed()) {
-        Shooter.getInstance().setOpenLoop(0.2);
-      } else {
-        Shooter.getInstance().setOpenLoop(0);
-      }*/
 
-
-      TelemetryUtil.print("Gyro: " + gyro.getHeading(), PrintStyle.INFO, false);
-
-      //System.out.println("R: " + colorSensor.getRaw().red + " G: " + colorSensor.getRaw().green + " B: " + colorSensor.getRaw().blue);
-    
-      /*switch(color) {
-        case BLUE:
-          System.out.println("Blue");
-          break;
-        case RED:
-          System.out.println("Red");
-          break;
-        case GREEN:
-          System.out.println("Green");
-          break;
-        case YELLOW:
-          System.out.println("Yellow");
-          break;
-        case UNKNOWN:
-          System.out.println("Unk");
-          break;
-      }*/
-
-
-      //mDrive.setCurvatureDrive(mDriveController.getY(Hand.kLeft), -mDriveController.getX(Hand.kRight), false);
-      //powerCellFollow();
-
+      driverControl();
+      SmartDashboard.putString("Target Distance", (int)mLimelight.getDistance()/12 + "', " + mLimelight.getDistance()%12);
+      SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
       
+      mLimelight.setPipeline(0);
+      SmartDashboard.putNumber("Pipeline", mLimelight.getPipeline());
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
       throw t;
@@ -192,17 +243,56 @@ public class Robot extends TimedRobot {
     
   }
 
-  /**
-   * This function is called periodically during test mode.
-   */
   @Override
-  public void testPeriodic() { // checkSubsystems();
+  public void testInit() {
+    try {
+      CrashTracker.logTestInit();
+      mDisabledLooper.stop();
+      
+      
+      mAutoModeExecutor.stop();
+      mTestModeExecutor.start();
+
+      mEnabledLooper.start();
+      
+      
+    } catch(Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+    }
   }
 
   @Override
-  public void disabledInit() {
-    enabledLooper.stop();
-    disabledLooper.start();
+  public void testPeriodic() { 
+    try {
+
+      
+    } catch(Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+    }
   }
+
+  public static double getXTargetOffset() {
+    return mLimelight.getXOffset();
+  }
+
+
+
+  public void driverControl() {
+
+    double throttle = mDriveController.getY(Hand.kLeft);
+      
+     /* mDrive.setCurvatureDrive(throttle, 
+        mDriveController.getX(Hand.kRight), Util.deadBand(throttle, 0.02) == 0);*/
+
+    if(mDriveController.aButton.isBeingPressed()) {
+      double angle = mLimelight.getXOffset();
+      double kP = 0.012;
+      TelemetryUtil.print("Aligning", PrintStyle.ERROR, false);
+      mDrive.setOpenLoop(new DriveSignal(angle*kP, -angle*kP));
+    }
+  
+  }
+
+ 
 }
 

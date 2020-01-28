@@ -34,6 +34,13 @@ public class TalonFXChecker extends MotorChecker<LazyTalonFX> {
         return checker.checkMotorImpl(subsystem, motorsToCheck, checkerConfig);
     }
 
+    public static void testMotors(Subsystem subsystem, 
+                                    ArrayList<MotorConfig<LazyTalonFX>> motorsToCheck,
+                                    TesterConfig testerConfig) {
+        TalonFXChecker checker = new TalonFXChecker();
+        checker.testMotorConfigurationImpl(subsystem, motorsToCheck, testerConfig);
+    }
+
     @Override
     protected void storeConfiguration() {
         for (MotorConfig<LazyTalonFX> config : mMotorsToCheck) {

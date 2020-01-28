@@ -31,6 +31,13 @@ public class SparkMaxChecker extends MotorChecker<LazySparkMax> {
         SparkMaxChecker checker = new SparkMaxChecker();
         return checker.checkMotorImpl(subsystem, motorsToCheck, checkerConfig); 
     }
+
+    public static void testMotors(Subsystem subsystem, 
+                                    ArrayList<MotorConfig<LazySparkMax>> motorsToCheck,
+                                    TesterConfig testerConfig) {
+        SparkMaxChecker checker = new SparkMaxChecker();
+        checker.testMotorConfigurationImpl(subsystem, motorsToCheck, testerConfig);
+    }
     
     @Override
     protected void storeConfiguration() {

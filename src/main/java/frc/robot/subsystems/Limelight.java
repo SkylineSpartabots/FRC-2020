@@ -116,6 +116,10 @@ public class Limelight extends Subsystem {
         return mPeriodicIO.yOffset;
     }
 
+    public synchronized double getXOffset() {
+        return mPeriodicIO.xOffset;
+    }
+
     public synchronized void setLed(LedMode mode) {
         if(mode.ordinal() != mPeriodicIO.ledMode) {
             mPeriodicIO.ledMode = mode.ordinal();
@@ -144,8 +148,8 @@ public class Limelight extends Subsystem {
     }
 
     public synchronized double getDistance() {
-        return (Constants.kTargetHeight - mConstants.kHeight) / 
-            Math.tan(Math.toRadians(3 + mPeriodicIO.yOffset));
+        return (Constants.kTargetHeight - Constants.kLensHeight) / 
+            Math.tan(Math.toRadians(Constants.kLensHorizontalAngle + mPeriodicIO.yOffset));
     }
 
     public synchronized List<TargetInfo> getTarget() {

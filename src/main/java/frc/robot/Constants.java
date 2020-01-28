@@ -63,14 +63,15 @@ public class Constants {
 
 
 
-	public static final double kLensHeight = 10.75;
-	public static final double kLensHorizontalAngle = -1.37;
+	public static final double kLensHeight = 27.06;
+	public static final double kLensHorizontalAngle = 15;
 	public static final double kTargetHeight = 98.5;
 
 
 	public static final LimelightConstants kShooterLimelightConstants = new LimelightConstants();
 	public static final double kQuickStopThreshold = 0;
-	public static final int kQuickStopAlpha = 0;
+	/* The threshold to begin accumulating quickStopAccumulator */ 
+	public static final double kQuickStopAlpha = 0.05;
 	public static final double kShooterkP = 0.09;
 	public static final double kShooterkI = 0.00008;
 	public static final double kShooterkD = 0;

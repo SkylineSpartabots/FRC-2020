@@ -5,19 +5,24 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.auto.modes;
+package frc.robot.auto.modes.tests;
 
-import frc.lib.util.TelemetryUtil;
-import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.auto.ModeEndedException;
+import frc.robot.auto.actions.LambdaAction;
+import frc.robot.auto.modes.AutoModeBase;
+import frc.robot.subsystems.Drive;
 
 /**
  * Add your docs here.
  */
-public class DoNothing extends AutoModeBase {
+public class DriveConfiguration extends AutoModeBase {
 
     @Override
     protected void routine() throws ModeEndedException {
-        TelemetryUtil.print("Big woop, I am doing absolutely nothing", PrintStyle.INFO, true);
+        runAction(new LambdaAction(() -> Drive.getInstance().testDriveConfiguration()));
+
     }
+
+
+   
 }

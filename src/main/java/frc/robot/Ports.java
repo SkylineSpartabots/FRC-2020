@@ -12,10 +12,10 @@ package frc.robot;
  */
 public class Ports {
 
-	public static final int DRIVE_LEFT_MASTER_ID = 2;
-	public static final int DRIVE_LEFT_SLAVE_ID = 10;
-	public static final int DRIVE_RIGHT_MASTER_ID = 10;
-	public static final int DRIVE_RIGHT_SLAVE_ID = 10;
+	public static final int DRIVE_LEFT_MASTER_ID = 4;
+	public static final int DRIVE_LEFT_SLAVE_ID = 3;
+	public static final int DRIVE_RIGHT_MASTER_ID = 2;
+	public static final int DRIVE_RIGHT_SLAVE_ID = 1;
 
 	public static final int INTAKE_SOLENOID_PORT = 0;
 	public static final int INTAKE_MOTOR_ID = 0;

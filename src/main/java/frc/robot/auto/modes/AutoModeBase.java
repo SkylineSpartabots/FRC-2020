@@ -15,7 +15,7 @@ import frc.robot.auto.actions.Action;
 /**
  * Add your docs here.
  */
-public abstract class ModeBase {
+public abstract class AutoModeBase {
     protected final double mUpdateRate = 1.0/50.0;
     protected boolean mActive = false;
     protected boolean mIsInterrupted = false;
