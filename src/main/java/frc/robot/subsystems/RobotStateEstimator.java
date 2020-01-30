@@ -30,8 +30,6 @@ public class RobotStateEstimator extends Subsystem {
     private RobotState mRobotState = RobotState.getInstance();
     private double mLeftPrevDistance = 0.0;
     private double mRightPrevDistance = 0.0;
-    private double mPrevTimestamp = -1.0;
-    private Rotation2d mPrevHeading = null;
 
     private RobotStateEstimator() {}
 
@@ -46,16 +44,11 @@ public class RobotStateEstimator extends Subsystem {
         public void onStart(double timestamp) {
             mLeftPrevDistance = mDrive.getLeftEncoderPosition();
             mRightPrevDistance = mDrive.getRightEncoderPosition();
-            mPrevTimestamp = timestamp;
         }
 
         @Override
         public void onLoop(double timestamp) {
-            if(mPrevHeading == null) {
-                mPrevHeading = mRobotState.getLatestFieldToVehicle().getValue().getRotation();
-            }
 
-            final double dt = timestamp - mPrevTimestamp;
             final double leftDisance = mDrive.getLeftEncoderPosition();
             final double rightDistance = mDrive.getRightEncoderPosition();
             final double deltaLeft = leftDisance - mLeftPrevDistance;

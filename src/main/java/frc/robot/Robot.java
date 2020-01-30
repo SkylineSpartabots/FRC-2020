@@ -67,7 +67,7 @@ public class Robot extends TimedRobot {
   private final Drive mDrive = Drive.getInstance();
 
   //private final RobotState mRobotState = RobotState.getInstance();
-  private static Limelight mLimelight;
+  private Limelight mLimelight;
   //private final RobotStateEstimator mRobotStateEstimator = RobotStateEstimator.getInstance();
 
 
@@ -216,6 +216,7 @@ public class Robot extends TimedRobot {
 
       mEnabledLooper.start();
       mLimelight.setLed(LedMode.ON);
+      mDrive.zeroSensors();
       
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -233,9 +234,8 @@ public class Robot extends TimedRobot {
       driverControl();
       SmartDashboard.putString("Target Distance", (int)mLimelight.getDistance()/12 + "', " + mLimelight.getDistance()%12);
       SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
-      
-      mLimelight.setPipeline(0);
-      SmartDashboard.putNumber("Pipeline", mLimelight.getPipeline());
+      SmartDashboard.putNumber("X Offset", mLimelight.getXOffset());
+      SmartDashboard.putNumber("Heading", mDrive.getHeading().getDegrees());      
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
       throw t;
@@ -271,25 +271,24 @@ public class Robot extends TimedRobot {
     }
   }
 
-  public static double getXTargetOffset() {
-    return mLimelight.getXOffset();
-  }
-
-
+  boolean visionTrackEnabled = false;
 
   public void driverControl() {
 
-    double throttle = mDriveController.getY(Hand.kLeft);
       
-     /* mDrive.setCurvatureDrive(throttle, 
-        mDriveController.getX(Hand.kRight), Util.deadBand(throttle, 0.02) == 0);*/
+    if(mDriveController.bButton.isBeingPressed()) {
+      visionTrackEnabled = false;
+      mDrive.setTurnPIDTarget(Rotation2d.fromDegrees(20));
+    }
 
     if(mDriveController.aButton.isBeingPressed()) {
-      double angle = mLimelight.getXOffset();
-      double kP = 0.012;
-      TelemetryUtil.print("Aligning", PrintStyle.ERROR, false);
-      mDrive.setOpenLoop(new DriveSignal(angle*kP, -angle*kP));
+      visionTrackEnabled = true;
     }
+
+    if(visionTrackEnabled && mLimelight.seesTarget()) {
+      mDrive.setTurnPIDTarget(Rotation2d.fromDegrees(mDrive.getHeading().getDegrees() + mLimelight.getXOffset()));
+    }
+
   
   }
 

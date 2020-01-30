@@ -16,6 +16,7 @@ import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
+import com.ctre.phoenix.motorcontrol.VelocityMeasPeriod;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -68,11 +69,12 @@ public class Drive extends Subsystem {
     // controllers
     private PathFollower mPathFollower;
     private Path mCurrentPath;
-    private PIDController mAlignmentController;
+    private PIDController mTurnController;
     
 
     // control states
     private DriveControlState mDriveControlState;
+
 
     /**
      * sets the motor's inversion, open loop ramp, closed loop ramp, voltage comp sat, and current limits
@@ -81,15 +83,12 @@ public class Drive extends Subsystem {
      */
     private synchronized void configureMotorForDrive(LazyTalonFX falcon, InvertType inversion) {
         falcon.setInverted(inversion);
-        PheonixUtil.checkError(falcon.configOpenloopRamp(0.3, Constants.kTimeOutMs),
-                falcon.getName() + " failed to set open loop ramp rate", true);
-
-        PheonixUtil.checkError(falcon.configClosedloopRamp(0.0, Constants.kTimeOutMs),
-                falcon.getName() + " failed to set closed loop ramp rate", true);
 
         PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
                 falcon.getName() + " failed to set voltage compensation", true);
-
+    
+        falcon.enableVoltageCompensation(true);
+        
         PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 35, 35, 0)),
                 falcon.getName() + " failed to set output current limit", true);
 
@@ -108,11 +107,27 @@ public class Drive extends Subsystem {
     private synchronized void configureMasterForDrive(LazyTalonFX falcon, InvertType inversion, boolean sensorPhase) {
         configureMotorForDrive(falcon, inversion);
         PheonixUtil.checkError(falcon.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, Constants.kTimeOutMs),
-            falcon.getName() + " failed to set feedback sensor on init", true);
+            falcon.getName() + " failed to set feedback sensor", true);
 
-        PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048 / Constants.kWheelDiameter) / Math.PI, 0,
+        PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048 / Constants.kDriveWheelDiameter) / Math.PI, 0,
                 Constants.kTimeOutMs), falcon.getName() + " failed to set sensor coeffecient", true);
+        
         falcon.setSensorPhase(sensorPhase);
+
+        PheonixUtil.checkError(falcon.configVelocityMeasurementPeriod(VelocityMeasPeriod.Period_50Ms, Constants.kTimeOutMs), 
+                falcon.getName() + " failed to set velocity meas. period", true);
+        
+        PheonixUtil.checkError(falcon.configVelocityMeasurementWindow(1, Constants.kTimeOutMs), 
+                falcon.getName() + " failed to set velocity meas. window", true);
+        
+        PheonixUtil.checkError(falcon.configOpenloopRamp(0.3, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set open loop ramp rate", true);
+
+        PheonixUtil.checkError(falcon.configClosedloopRamp(0.0, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set closed loop ramp rate", true);
+        
+        PheonixUtil.checkError(falcon.configNeutralDeadband(0.0, Constants.kTimeOutMs), 
+                falcon.getName() + " failed to set neutral deadband", true);   
     }
 
     private Drive() {
@@ -134,8 +149,16 @@ public class Drive extends Subsystem {
 
         mNavx = Navx.getInstance();
 
+        SmartDashboard.putNumber("Turn kP", 0.01);
+        SmartDashboard.putNumber("Turn kI", 0.0);
+        SmartDashboard.putNumber("Turn kD", 0.0);
 
-        mAlignmentController = new PIDController(0.01, 0.003, 0, () -> Robot.getXTargetOffset(), 5);
+        mTurnController = new PIDController(SmartDashboard.getNumber("Turn kP", 0),
+             SmartDashboard.getNumber("Turn kI", 0.0), SmartDashboard.getNumber("Turn kD", 0.0),
+             () -> getHeading().getDegrees(), 5);
+
+        mTurnController.setIRange(5);
+        mTurnController.enableDebug();
 
         mIsBrakeMode = true;
         setBrakeMode(false);
@@ -209,7 +232,7 @@ public class Drive extends Subsystem {
      */
     @Override
     public void writePeriodicOutputs() {
-        if (mDriveControlState == DriveControlState.OPEN_LOOP) {
+        if (mDriveControlState == DriveControlState.OPEN_LOOP || mDriveControlState == DriveControlState.TURN_PID) {
             mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand);
             mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand);
         } else if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
@@ -242,6 +265,9 @@ public class Drive extends Subsystem {
             public void onLoop(double timestamp) {
                 synchronized (Drive.this) {
                     //handleFaults();
+
+
+
                     switch (mDriveControlState) {
                     case OPEN_LOOP:
                         break;
@@ -250,8 +276,9 @@ public class Drive extends Subsystem {
                             updatePathFollower(timestamp);
                         }
                         break;
-                    case ALIGNMENT_TURN:
-                        updateAlignmentController();
+                    case TURN_PID:
+                        updateTurnController();
+                        break;
                     default:
                         TelemetryUtil.print("Drive in an unexpected control state", PrintStyle.ERROR, false);
                         break;
@@ -328,6 +355,10 @@ public class Drive extends Subsystem {
     public synchronized void setOpenLoop(DriveSignal signal) {
         if (mDriveControlState != DriveControlState.OPEN_LOOP) {
             setBrakeMode(false);
+            PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.04, Constants.kTimeOutMs),
+                 mLeftMaster.getName() + " failed to set neutral deadband on openloop transition", true);
+            PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.04, Constants.kTimeOutMs),
+                 mRightMaster.getName() + " failed to set neutral deadband on openloop transition", true);
             mDriveControlState = DriveControlState.OPEN_LOOP;
         }
 
@@ -447,23 +478,35 @@ public class Drive extends Subsystem {
     }
 
 
-    public synchronized void setTargetAlignment() {
-        if(mDriveControlState != DriveControlState.ALIGNMENT_TURN) {
+    public synchronized void setTurnPIDTarget(Rotation2d heading) {
+        if(mDriveControlState != DriveControlState.TURN_PID) {
             setBrakeMode(true);
             setStatorCurrentLimit(35);
-            mAlignmentController.reset();
-            mDriveControlState = DriveControlState.ALIGNMENT_TURN;
-        }    
+            PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mLeftMaster.getName() + " failed to set neutral deadband on turn pid transition", true);
+            PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mRightMaster.getName() + " failed to set neutral deadband on turn pid transition", true);
+            
+            mTurnController.reset();
+            mDriveControlState = DriveControlState.TURN_PID;
+        }
+    
+        mTurnController.setConstants(SmartDashboard.getNumber("Turn kP", 0),
+            SmartDashboard.getNumber("Turn kI", 0.0), SmartDashboard.getNumber("Turn kD", 0.0));
+        
+        mTurnController.setDesiredValue(heading.getDegrees());
     }
 
 
-    private synchronized void updateAlignmentController() {
-        if(mDriveControlState == DriveControlState.ALIGNMENT_TURN) {
-            double output = mAlignmentController.getOutput();
+    private synchronized void updateTurnController() {
+        if(mDriveControlState == DriveControlState.TURN_PID) {
+            double output = mTurnController.getOutput();
             mPeriodicIO.left_demand = output;
             mPeriodicIO.right_demand = -output;
             mPeriodicIO.left_feedforward = 0.0;
             mPeriodicIO.right_feedforward = 0.0;
+        } else {
+            TelemetryUtil.print("Robot is not in a PID turning state", PrintStyle.ERROR, true);
         }
     }
 
@@ -476,6 +519,10 @@ public class Drive extends Subsystem {
         if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             setBrakeMode(true);
             setStatorCurrentLimit(35);
+            PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mLeftMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+            PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mRightMaster.getName() + " failed to set neutral deadband on pathing transition", true);
             mDriveControlState = DriveControlState.PATH_FOLLOWING;
         }
 
@@ -518,9 +565,11 @@ public class Drive extends Subsystem {
     public synchronized boolean isDoneWithPath() {
         if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             return mPathFollower.isFinished();
+        } else {
+            TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
+            return true;
         }
-        TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
-        return true;
+        
     }
 
     /**
@@ -651,7 +700,7 @@ public class Drive extends Subsystem {
      * enum to keep track of drive control status
      */
     private enum DriveControlState {
-        OPEN_LOOP, PATH_FOLLOWING, ALIGNMENT_TURN;
+        OPEN_LOOP, PATH_FOLLOWING, TURN_PID;
     }
 
     /**
@@ -659,6 +708,7 @@ public class Drive extends Subsystem {
      */
     @Override
     public void zeroSensors() {
+        mNavx.reset();
         setHeading(Rotation2d.identity());
         resetEncoders();
     }

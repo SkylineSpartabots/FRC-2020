@@ -74,6 +74,10 @@ public class PIDController {
         this.iRange = iRange;
     }
 
+    public double getIRange() {
+        return this.iRange;
+    }
+
     public void reset() {
         resetErrorSum();
         prevError = 0;
@@ -99,7 +103,7 @@ public class PIDController {
         lastTime = currentTime;
         
 
-        deltaTime /= 20;
+       // deltaTime /= 20;
 
         //Calculate p value
         pVal = error * kP;
@@ -133,6 +137,7 @@ public class PIDController {
             SmartDashboard.putNumber("D Out", dVal);
             SmartDashboard.putNumber("PID Output", output);
             SmartDashboard.putNumber("Error", error);
+            SmartDashboard.putNumber("Error Sum", errorSum);
         }
 
         return output;

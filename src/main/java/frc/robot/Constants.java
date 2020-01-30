@@ -15,37 +15,61 @@ import frc.robot.subsystems.Limelight.LimelightConstants;
  */
 public class Constants {
 
-	
+	//Timeout for CAN commands and error checking
 	public static final int kTimeOutMs = 100;
-	public static final double kPathFollowingMaxAccel = 0;
+
+	//Cycle speed for looper threads
+	public static final double kLooperDt = 0.01;
+
+	//Drive physical characteristics
+	public static final double kDriveWheelTrackWidthInches = 26.125;
+	public static final double kTrackScrubFactor = 1.0469;
+	public static final double kDriveWheelDiameter = 6.0;
+	public static final double kDriveWheelRadiusInches = kDriveWheelDiameter / 2.0;
+	public static final double kDriveWheelTrackRadiusMeters = kDriveWheelTrackWidthInches / 2.0 * 0.0254;
+
+
+	//Drive
+	public static final double kMinLookAhead = 12.0;
+	public static final double kMinLookAheadSpeed = 12.0;
+	public static final double kMaxLookAhead = 48.0;
+	public static final double kMaxLookAheadSpeed = 120.0;
+	
+	public static final double kPathFollowingMaxAccel = 80.0;
+	public static final double kPathFollowingMaxVel = 120.0;
+	public static final double kPathFollowingProfileKp = 0.3 / 12.0;
+	public static final double kPathFollowingProfileKi = 0.0;
+	public static final double kPathFollowingProfileKv = 0.01 / 12.0;
+	public static final double kPathFollowingProfileKffv = 0.003889;
+	public static final double kPathFollowingProfileKffa = 0.001415;
+	public static final double kPathFollowingProfileKs = 0.1801 / 12.0;
+	public static final double kPathFollowingGoalPosTolerance = 3.0;
+	public static final double kPathFollowingGoalVelTolerance = 12.0;
+	public static final double kPathStopSteeringDistance = 12.0;
+	
+	public static final double kInertiaSteeringGain = 0.0;
+
 	public static final double kMaxGoalTrackAge = 0;
 	public static final double kCameraFrameRate = 0;
 	public static final double kMaxTrackerDistance = 0;
-	public static final double kLooperDt = 0.01;
-	public static final int kDriveWheelTrackWidthInches = 0;
-	public static final int kTrackScrubFactor = 0;
-	public static final double kMaxLookAheadSpeed = 0;
-	public static final double kMinLookAhead = 0;
-	public static final double kMaxLookAhead = 0;
-	public static final double kMinLookAheadSpeed = 0;
-	public static final double kInertiaSteeringGain = 0;
-	public static final double kPathFollowingProfileKp = 0;
-	public static final double kPathFollowingProfileKffv = 0;
-	public static final double kPathFollowingProfileKv = 0;
-	public static final double kPathFollowingProfileKs = 0;
-	public static final double kPathFollowingMaxVel = 0;
-	public static final double kPathFollowingProfileKffa = 0;
-	public static final double kPathFollowingGoalVelTolerance = 0;
-	public static final double kPathStopSteeringDistance = 0;
-	public static final double kPathFollowingGoalPosTolerance = 0;
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+
 	public static double kMaxGoalSmoothingTime;
-	public static final double kWheelDiameter = 6.0;
 	public static double driveVelocityKd;
-	public static double kPathFollowingProfileKi;
+	
 
 	public static final double kFalconPPR = 2048;
 	public static final double kGearReduction = 1.0;
-	public static final double kTicksPerInch = (kFalconPPR) / (kWheelDiameter * Math.PI);
+	public static final double kTicksPerInch = (kFalconPPR) / (kDriveWheelDiameter * Math.PI);
 
 	public static final double kFalconHeatThreshold = 75;
 	

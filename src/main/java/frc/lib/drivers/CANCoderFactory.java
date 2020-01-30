@@ -43,7 +43,7 @@ public class CANCoderFactory {
     static {
         kDriveConfiguration.UNIT_STRING = "inches";
         //TODO: Logic for determinig constant given wheel diameter to give inches as native unit
-        kDefaultConfiguration.SENSOR_COEFFECIENT = (Constants.kWheelDiameter * Math.PI) / 360.0; 
+        kDefaultConfiguration.SENSOR_COEFFECIENT = (Constants.kDriveWheelDiameter * Math.PI) / 360.0; 
         kDriveConfiguration.SENSOR_TIME_BASE = SensorTimeBase.Per100Ms_Legacy;
     }
 
