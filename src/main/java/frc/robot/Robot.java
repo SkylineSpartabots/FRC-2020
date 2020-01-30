@@ -199,7 +199,12 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void autonomousPeriodic() {
-    
+    try {
+
+    } catch (Throwable t) {
+      CrashTracker.logThrowableCrash(t);
+      throw t;
+    }
   }
 
   @Override

@@ -158,7 +158,7 @@ public class Drive extends Subsystem {
              () -> getHeading().getDegrees(), 5);
 
         mTurnController.setIRange(5);
-        mTurnController.enableDebug();
+        //mTurnController.enableDebug();
 
         mIsBrakeMode = true;
         setBrakeMode(false);
@@ -189,10 +189,6 @@ public class Drive extends Subsystem {
         // outputs
         public double left_demand;
         public double right_demand;
-        public double left_accel;
-        public double right_accel;
-        public double left_feedforward;
-        public double right_feedforward;
     }
 
     /**
@@ -232,17 +228,10 @@ public class Drive extends Subsystem {
      */
     @Override
     public void writePeriodicOutputs() {
-        if (mDriveControlState == DriveControlState.OPEN_LOOP || mDriveControlState == DriveControlState.TURN_PID) {
+        if (mDriveControlState != null) {
             mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand);
             mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand);
-        } else if (mDriveControlState == DriveControlState.PATH_FOLLOWING) {
-            mLeftMaster.set(ControlMode.Velocity, mPeriodicIO.left_demand, DemandType.ArbitraryFeedForward,
-                    mPeriodicIO.left_feedforward + Constants.driveVelocityKd * mPeriodicIO.left_accel / 1023.0);
-
-            mRightMaster.set(ControlMode.Velocity, mPeriodicIO.right_demand, DemandType.ArbitraryFeedForward,
-                    mPeriodicIO.right_feedforward + Constants.driveVelocityKd * mPeriodicIO.right_accel / 1023.0);
-        }
-        
+        } 
     }
 
 
@@ -264,7 +253,7 @@ public class Drive extends Subsystem {
             @Override
             public void onLoop(double timestamp) {
                 synchronized (Drive.this) {
-                    //handleFaults();
+                    handleFaults();
 
 
 
@@ -364,8 +353,6 @@ public class Drive extends Subsystem {
 
         mPeriodicIO.left_demand = signal.getLeft();
         mPeriodicIO.right_demand = signal.getRight();
-        mPeriodicIO.left_feedforward = 0.0;
-        mPeriodicIO.right_feedforward = 0.0;
     }
 
     private double mQuickStopAccumulator;
@@ -503,8 +490,6 @@ public class Drive extends Subsystem {
             double output = mTurnController.getOutput();
             mPeriodicIO.left_demand = output;
             mPeriodicIO.right_demand = -output;
-            mPeriodicIO.left_feedforward = 0.0;
-            mPeriodicIO.right_feedforward = 0.0;
         } else {
             TelemetryUtil.print("Robot is not in a PID turning state", PrintStyle.ERROR, true);
         }
@@ -515,7 +500,7 @@ public class Drive extends Subsystem {
      * @param signal the drive signal to set motor velocity
      * @param feedforward the drive signal to set motor feedforward
      */
-    public synchronized void setVelocity(DriveSignal signal, DriveSignal feedforward) {
+    public synchronized void setVelocity(DriveSignal signal) {
         if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             setBrakeMode(true);
             setStatorCurrentLimit(35);
@@ -528,8 +513,6 @@ public class Drive extends Subsystem {
 
         mPeriodicIO.left_demand = signal.getLeft();
         mPeriodicIO.right_demand = signal.getRight();
-        mPeriodicIO.left_feedforward = signal.getLeft();
-        mPeriodicIO.right_feedforward = signal.getRight();
     }
 
     /**
@@ -553,7 +536,7 @@ public class Drive extends Subsystem {
             mDriveControlState = DriveControlState.PATH_FOLLOWING;
             mCurrentPath = path;
         } else {
-            setVelocity(DriveSignal.NEUTRAL, DriveSignal.NEUTRAL);
+            setVelocity(DriveSignal.NEUTRAL);
         }
     }
 
@@ -594,10 +577,10 @@ public class Drive extends Subsystem {
                     robot_state.getPredictedVelocity().dx);
             if (!mPathFollower.isFinished()) {
                 DriveSignal setpoint = Kinematics.inverseKinematics(command);
-                setVelocity(setpoint, new DriveSignal(0, 0));
+                setVelocity(setpoint);
             } else {
                 if (!mPathFollower.isForceFinished()) {
-                    setVelocity(new DriveSignal(0, 0), new DriveSignal(0, 0));
+                    setVelocity(new DriveSignal(0, 0));
                 }
             }
         } else {

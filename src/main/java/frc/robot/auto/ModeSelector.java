@@ -15,6 +15,7 @@ import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.auto.modes.DoNothing;
+import frc.robot.auto.modes.TestPathingMode;
 import frc.robot.auto.modes.tests.DriveConfiguration;
 
 public class ModeSelector {
@@ -26,7 +27,8 @@ public class ModeSelector {
     private enum AutoModes {
         DO_NOTHING,
         LEAVE_LINE,
-        TRENCH_AUTO
+        TRENCH_AUTO,
+        TEST_PATHING
     }
 
     private enum TestModes {
@@ -64,7 +66,7 @@ public class ModeSelector {
         mAutoModeChooser.setDefaultOption("Full Trench", AutoModes.TRENCH_AUTO);
         mAutoModeChooser.addOption("Do Nothing", AutoModes.DO_NOTHING);
         mAutoModeChooser.addOption("Leave Line", AutoModes.LEAVE_LINE);
-
+        mAutoModeChooser.addOption("Test Pathing", AutoModes.TEST_PATHING);
         SmartDashboard.putData("Auto Mode", mAutoModeChooser);
 
         //Test mode sendable chooser configuration
@@ -103,7 +105,8 @@ public class ModeSelector {
         switch(mode) {
             case DO_NOTHING:
                 return Optional.of(new DoNothing());
-            //add more cases for auto modes to come
+            case TEST_PATHING:
+                return Optional.of(new TestPathingMode(false));
             default:
                 break;
         }
