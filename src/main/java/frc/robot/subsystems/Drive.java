@@ -176,8 +176,8 @@ public class Drive extends Subsystem {
         public double right_position;
         public double left_distance;
         public double right_distance;
-        public double left_velocity_per_100ms;
-        public double right_velocity_per_100ms;
+        public double left_velocity_per_50ms;
+        public double right_velocity_per_50ms;
         public Rotation2d heading = Rotation2d.identity();
         public Pose2d error = Pose2d.identity();
 
@@ -210,8 +210,8 @@ public class Drive extends Subsystem {
         mPeriodicIO.left_distance += deltaLeftPosition;
         mPeriodicIO.right_distance += deltaRightPosition;
 
-        mPeriodicIO.left_velocity_per_100ms = mLeftMaster.getSelectedSensorVelocity();
-        mPeriodicIO.right_velocity_per_100ms = mRightMaster.getSelectedSensorVelocity();
+        mPeriodicIO.left_velocity_per_50ms = mLeftMaster.getSelectedSensorVelocity();
+        mPeriodicIO.right_velocity_per_50ms = mRightMaster.getSelectedSensorVelocity();
 
         mPeriodicIO.heading = Rotation2d.fromDegrees(mNavx.getHeading()).rotateBy(mGyroOffset);
 
@@ -301,7 +301,7 @@ public class Drive extends Subsystem {
      * @return left encoder distance (raw) per second
      */
     public double getLeftLinearVelocity() {
-        return mPeriodicIO.left_velocity_per_100ms * 10.0;
+        return mPeriodicIO.left_velocity_per_50ms * 20.0;
     }
 
     /**
@@ -309,7 +309,7 @@ public class Drive extends Subsystem {
      * @return right encoder distance (raw) per second
      */
     public double getRightLinearVelocity() {
-        return mPeriodicIO.right_velocity_per_100ms * 10.0;
+        return mPeriodicIO.right_velocity_per_50ms * 20.0;
     }
 
     /**

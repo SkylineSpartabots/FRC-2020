@@ -66,7 +66,7 @@ public class Robot extends TimedRobot {
   //private final Shooter mShooter = Shooter.getInstance();
   private final Drive mDrive = Drive.getInstance();
 
-  //private final RobotState mRobotState = RobotState.getInstance();
+  private final RobotState mRobotState = RobotState.getInstance();
   private Limelight mLimelight;
   //private final RobotStateEstimator mRobotStateEstimator = RobotStateEstimator.getInstance();
 
@@ -109,8 +109,8 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     try {
-      SmartDashboard.putNumber("Left Drive Velocity", mDrive.getLeftLinearVelocity());
-      SmartDashboard.putNumber("Right Drive Velocity", mDrive.getRightLinearVelocity());
+      mSubsystemManager.outputToSmartDashboard();
+      mRobotState.outputToSmartDashboard();
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
       throw t;

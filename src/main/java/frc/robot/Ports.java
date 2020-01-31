@@ -36,4 +36,5 @@ public class Ports {
 	public static final int HOPPER_BALL_HOLDER = 0;
 	public static final int CANIFIER_ID = 0;
 	public static final int PCM_ID = 0;
+	public static final int PDP_ID = 0;
 }

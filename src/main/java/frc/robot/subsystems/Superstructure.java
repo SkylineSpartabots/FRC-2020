@@ -49,5 +49,9 @@ public class Superstructure extends Subsystem {
 
     }
 
+	public boolean isAtDesiredState() {
+		return false;
+	}
+
 
 }
