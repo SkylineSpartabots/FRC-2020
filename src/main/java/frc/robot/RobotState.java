@@ -104,6 +104,8 @@ public class RobotState {
         SmartDashboard.putNumber("Robot Pose Y", odometry.getTranslation().y());
         SmartDashboard.putNumber("Robot Pose Theta", odometry.getRotation().getDegrees());
         SmartDashboard.putNumber("Robot Linear Velocity", vehicle_velocity_measured_.dx);
+        SmartDashboard.putNumber("Robot Linear Pred. Velocity", getPredictedVelocity().dx);
+        SmartDashboard.putNumber("Distance Driven", getDistanceDriven());
     }
 
 }

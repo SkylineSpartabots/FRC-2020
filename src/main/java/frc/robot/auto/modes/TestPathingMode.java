@@ -30,12 +30,12 @@ public class TestPathingMode extends AutoModeBase {
         mLeft = left;
 
         mFirstPath = new DrivePathAction(new TestPath1(left));
-        mSecondPath = new DrivePathAction(new TestPath2(left));
+        //mSecondPath = new DrivePathAction(new TestPath2(left));
         
     }
 
     @Override
     protected void routine() throws ModeEndedException {
-        runAction(new SeriesAction(Arrays.asList(mFirstPath, new WaitAction(2), mSecondPath)));
+        runAction((mFirstPath));
     }
 }

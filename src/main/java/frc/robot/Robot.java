@@ -14,10 +14,12 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
+import frc.lib.geometry.Pose2d;
 import frc.lib.geometry.Rotation2d;
 import frc.lib.sensors.ColorSensor;
 import frc.lib.sensors.Navx;
@@ -68,7 +70,7 @@ public class Robot extends TimedRobot {
 
   private final RobotState mRobotState = RobotState.getInstance();
   private Limelight mLimelight;
-  //private final RobotStateEstimator mRobotStateEstimator = RobotStateEstimator.getInstance();
+  private final RobotStateEstimator mRobotStateEstimator = RobotStateEstimator.getInstance();
 
 
   private ModeSelector mModeSelector = new ModeSelector();
@@ -91,7 +93,8 @@ public class Robot extends TimedRobot {
 
       mSubsystemManager.setSubsystems(
         mDrive,
-        mLimelight
+        mLimelight,
+        mRobotStateEstimator
       );
 
       mSubsystemManager.registerEnabledLoops(mEnabledLooper);
@@ -135,6 +138,7 @@ public class Robot extends TimedRobot {
       
 
       //Zero sensors accordingly
+
 
       mModeSelector.reset();
       mModeSelector.updateModeSelection();
@@ -181,6 +185,8 @@ public class Robot extends TimedRobot {
 
       //Zero sensors and robot state accordingly
 
+      mDrive.zeroSensors();
+      mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
       mTestModeExecutor.stop();
       mAutoModeExecutor.start();
 

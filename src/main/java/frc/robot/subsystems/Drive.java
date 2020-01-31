@@ -109,8 +109,8 @@ public class Drive extends Subsystem {
         PheonixUtil.checkError(falcon.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, Constants.kTimeOutMs),
             falcon.getName() + " failed to set feedback sensor", true);
 
-        PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient((2048 / Constants.kDriveWheelDiameter) / Math.PI, 0,
-                Constants.kTimeOutMs), falcon.getName() + " failed to set sensor coeffecient", true);
+        /*PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient(0.0000474609375 * Constants.kDriveWheelDiameter, 0,
+                Constants.kTimeOutMs), falcon.getName() + " failed to set sensor coeffecient", true);*/
         
         falcon.setSensorPhase(sensorPhase);
 
@@ -286,7 +286,7 @@ public class Drive extends Subsystem {
      * @return raw position of left encoder
      */
     public double getLeftEncoderPosition() {
-        return mPeriodicIO.left_position;
+        return (mPeriodicIO.left_position / 2048) * 0.0972 * Constants.kDriveWheelDiameter;
     }
 
     /**
@@ -294,14 +294,14 @@ public class Drive extends Subsystem {
      * @return raw position of right encoder
      */
     public double getRightEncoderPosition() {
-        return mPeriodicIO.right_position;
+        return (mPeriodicIO.right_position / 2048) * 0.0972 * Constants.kDriveWheelDiameter;
     }
 
     /**
      * @return left encoder distance (raw) per second
      */
     public double getLeftLinearVelocity() {
-        return mPeriodicIO.left_velocity_per_50ms * 20.0;
+        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Constants.kDriveWheelDiameter * 20.0;
     }
 
     /**
@@ -309,8 +309,8 @@ public class Drive extends Subsystem {
      * @return right encoder distance (raw) per second
      */
     public double getRightLinearVelocity() {
-        return mPeriodicIO.right_velocity_per_50ms * 20.0;
-    }
+        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Constants.kDriveWheelDiameter * 20.0;
+    }   
 
     /**
      * @return average linear distance (raw) per second with both sides
@@ -714,6 +714,8 @@ public class Drive extends Subsystem {
         SmartDashboard.putBoolean("Is Drive Overheathing", isDriveOverheating());
         SmartDashboard.putNumber("Left Drive Velocity", getLeftLinearVelocity());
         SmartDashboard.putNumber("Right Drive Velocity", getRightLinearVelocity());
+        SmartDashboard.putNumber("Left Position", getLeftEncoderPosition());
+        SmartDashboard.putNumber("Right Position", getRightEncoderPosition()); 
     }
 
     
