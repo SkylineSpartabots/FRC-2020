@@ -16,6 +16,7 @@ import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.auto.modes.DoNothing;
 import frc.robot.auto.modes.TestPathingMode;
+import frc.robot.auto.modes.TrenchFullAuto;
 import frc.robot.auto.modes.tests.DriveConfiguration;
 
 public class ModeSelector {
@@ -107,6 +108,8 @@ public class ModeSelector {
                 return Optional.of(new DoNothing());
             case TEST_PATHING:
                 return Optional.of(new TestPathingMode(false));
+            case TRENCH_AUTO:
+                return Optional.of(new TrenchFullAuto());
             default:
                 break;
         }

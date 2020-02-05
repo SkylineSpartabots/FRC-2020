@@ -50,6 +50,7 @@ public class DrivePathAction implements Action {
     @Override
     public void done() {
         if(mStopWhenDone) {
+            mDrive.setBrakeMode(true);
             mDrive.setVelocity(new DriveSignal(0, 0));
         }
     }

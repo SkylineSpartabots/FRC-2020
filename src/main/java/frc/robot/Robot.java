@@ -7,23 +7,13 @@
 
 package frc.robot;
 
-import java.util.Arrays;
 import java.util.Optional;
 
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.GenericHID.Hand;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
 import frc.lib.geometry.Pose2d;
-import frc.lib.geometry.Rotation2d;
-import frc.lib.sensors.ColorSensor;
-import frc.lib.sensors.Navx;
-import frc.lib.sensors.ColorSensor.Colors;
 import frc.lib.util.CrashTracker;
 import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
@@ -92,7 +82,7 @@ public class Robot extends TimedRobot {
       mLimelight = new Limelight(Constants.kShooterLimelightConstants);
 
       mSubsystemManager.setSubsystems(
-        mDrive,
+        //mDrive,
         mLimelight,
         mRobotStateEstimator
       );
@@ -100,7 +90,7 @@ public class Robot extends TimedRobot {
       mSubsystemManager.registerEnabledLoops(mEnabledLooper);
       mSubsystemManager.registerDisabledLoops(mDisabledLooper);
 
-      mDrive.setHeading(Rotation2d.identity());
+      //mDrive.setHeading(Rotation2d.identity());
       
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -138,6 +128,8 @@ public class Robot extends TimedRobot {
       
 
       //Zero sensors accordingly
+      //mDrive.zeroSensors();
+      mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
 
 
       mModeSelector.reset();
@@ -182,12 +174,12 @@ public class Robot extends TimedRobot {
       CrashTracker.logAutoInit();
       mDisabledLooper.stop();
 
-
+      mTestModeExecutor.stop();
       //Zero sensors and robot state accordingly
 
-      mDrive.zeroSensors();
+      //mDrive.zeroSensors();
       mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
-      mTestModeExecutor.stop();
+      
       mAutoModeExecutor.start();
 
       mEnabledLooper.start();
@@ -224,11 +216,13 @@ public class Robot extends TimedRobot {
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
       }
+      mLimelight.setLed(LedMode.OFF);
+      //mDrive.zeroSensors();
+      mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
 
+      TelemetryUtil.print("Robot Pose X: " + mRobotState.getLatestFieldToVehicle().getValue().getTranslation().x(), 
+        PrintStyle.ERROR, false);
       mEnabledLooper.start();
-      mLimelight.setLed(LedMode.ON);
-      mDrive.zeroSensors();
-      
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
     }
@@ -242,11 +236,11 @@ public class Robot extends TimedRobot {
     try {
       mDriveController.update();
 
-      driverControl();
+    
       SmartDashboard.putString("Target Distance", (int)mLimelight.getDistance()/12 + "', " + mLimelight.getDistance()%12);
       SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
       SmartDashboard.putNumber("X Offset", mLimelight.getXOffset());
-      SmartDashboard.putNumber("Heading", mDrive.getHeading().getDegrees());      
+      //SmartDashboard.putNumber("Heading", mDrive.getHeading().getDegrees());      
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
       throw t;
@@ -286,8 +280,9 @@ public class Robot extends TimedRobot {
 
   public void driverControl() {
 
+    //mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
       
-    if(mDriveController.bButton.isBeingPressed()) {
+    /*if(mDriveController.bButton.isBeingPressed()) {
       visionTrackEnabled = false;
       mDrive.setTurnPIDTarget(Rotation2d.fromDegrees(20));
     }
@@ -298,7 +293,7 @@ public class Robot extends TimedRobot {
 
     if(visionTrackEnabled && mLimelight.seesTarget()) {
       mDrive.setTurnPIDTarget(Rotation2d.fromDegrees(mDrive.getHeading().getDegrees() + mLimelight.getXOffset()));
-    }
+    }*/
 
   
   }

@@ -21,7 +21,6 @@ import frc.robot.loops.Loop;
 public class AirCompressor extends Subsystem {
 
     private static AirCompressor mInstance = null;
-
     public static AirCompressor getInstance() {
         if(mInstance == null) {
             mInstance = new AirCompressor();
@@ -70,7 +69,6 @@ public class AirCompressor extends Subsystem {
 
     private void startCompressor() {
         mCompressor.start();
-        ;
     }
 
     private void stopCompressor() {
@@ -102,7 +100,6 @@ public class AirCompressor extends Subsystem {
 
     @Override
     public void outputTelemetry() {
-        // TODO Auto-generated method stub
 
     }
 }

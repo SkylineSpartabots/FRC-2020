@@ -9,6 +9,8 @@ package frc.robot.subsystems;
 
 import frc.lib.geometry.Rotation2d;
 import frc.lib.geometry.Twist2d;
+import frc.lib.util.TelemetryUtil;
+import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Kinematics;
 import frc.robot.RobotState;
 import frc.robot.loops.ILooper;
@@ -44,6 +46,8 @@ public class RobotStateEstimator extends Subsystem {
         public void onStart(double timestamp) {
             mLeftPrevDistance = mDrive.getLeftEncoderPosition();
             mRightPrevDistance = mDrive.getRightEncoderPosition();
+            TelemetryUtil.print("Left Prev: " + mLeftPrevDistance, PrintStyle.ERROR, false);
+            mDrive.zeroSensors();
         }
 
         @Override
@@ -58,6 +62,7 @@ public class RobotStateEstimator extends Subsystem {
                 deltaRight, heading);
             final Twist2d predicted_velocity = Kinematics.forwardKinematics(mDrive.getLeftLinearVelocity(),
                 mDrive.getRightLinearVelocity());
+    
             mRobotState.addObservations(timestamp, odometry_velocity, predicted_velocity);
             mLeftPrevDistance = leftDisance;
             mRightPrevDistance = rightDistance;
@@ -66,7 +71,6 @@ public class RobotStateEstimator extends Subsystem {
 
         @Override
         public void onStop(double timestamp) {
-
         }
 
     }

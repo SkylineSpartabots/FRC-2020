@@ -41,7 +41,6 @@ import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Constants;
 import frc.robot.Kinematics;
 import frc.robot.Ports;
-import frc.robot.Robot;
 import frc.robot.RobotState;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
@@ -108,9 +107,6 @@ public class Drive extends Subsystem {
         configureMotorForDrive(falcon, inversion);
         PheonixUtil.checkError(falcon.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, Constants.kTimeOutMs),
             falcon.getName() + " failed to set feedback sensor", true);
-
-        /*PheonixUtil.checkError(falcon.configSelectedFeedbackCoefficient(0.0000474609375 * Constants.kDriveWheelDiameter, 0,
-                Constants.kTimeOutMs), falcon.getName() + " failed to set sensor coeffecient", true);*/
         
         falcon.setSensorPhase(sensorPhase);
 
@@ -160,8 +156,8 @@ public class Drive extends Subsystem {
         mTurnController.setIRange(5);
         //mTurnController.enableDebug();
 
-        mIsBrakeMode = true;
-        setBrakeMode(false);
+        mIsBrakeMode = false;
+        setBrakeMode(true);
 
         setOpenLoop(DriveSignal.NEUTRAL);
     }
@@ -228,6 +224,8 @@ public class Drive extends Subsystem {
      */
     @Override
     public void writePeriodicOutputs() {
+    
+
         if (mDriveControlState != null) {
             mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand);
             mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand);
@@ -246,7 +244,7 @@ public class Drive extends Subsystem {
             public void onStart(double timestamp) {
                 synchronized (Drive.this) {
                     stop();
-                    setBrakeMode(false);
+                    setBrakeMode(true);
                 }
             }
 
@@ -254,9 +252,7 @@ public class Drive extends Subsystem {
             public void onLoop(double timestamp) {
                 synchronized (Drive.this) {
                     handleFaults();
-
-
-
+                    //System.out.println(mDriveControlState);
                     switch (mDriveControlState) {
                     case OPEN_LOOP:
                         break;
@@ -278,6 +274,7 @@ public class Drive extends Subsystem {
             @Override
             public void onStop(double timestamp) {
                 stop();
+                setBrakeMode(true);
             }
         });
     }
@@ -286,7 +283,7 @@ public class Drive extends Subsystem {
      * @return raw position of left encoder
      */
     public double getLeftEncoderPosition() {
-        return (mPeriodicIO.left_position / 2048) * 0.0972 * Constants.kDriveWheelDiameter;
+        return (mPeriodicIO.left_position / 2048) * 0.0972 * Math.PI * Constants.kDriveWheelDiameter;
     }
 
     /**
@@ -294,14 +291,14 @@ public class Drive extends Subsystem {
      * @return raw position of right encoder
      */
     public double getRightEncoderPosition() {
-        return (mPeriodicIO.right_position / 2048) * 0.0972 * Constants.kDriveWheelDiameter;
+        return (mPeriodicIO.right_position / 2048) * 0.0972 * Math.PI * Constants.kDriveWheelDiameter;
     }
 
     /**
      * @return left encoder distance (raw) per second
      */
     public double getLeftLinearVelocity() {
-        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Constants.kDriveWheelDiameter * 20.0;
+        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Math.PI * Constants.kDriveWheelDiameter * 20.0;
     }
 
     /**
@@ -309,7 +306,7 @@ public class Drive extends Subsystem {
      * @return right encoder distance (raw) per second
      */
     public double getRightLinearVelocity() {
-        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Constants.kDriveWheelDiameter * 20.0;
+        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Math.PI * Constants.kDriveWheelDiameter * 20.0;
     }   
 
     /**
@@ -343,7 +340,7 @@ public class Drive extends Subsystem {
      */
     public synchronized void setOpenLoop(DriveSignal signal) {
         if (mDriveControlState != DriveControlState.OPEN_LOOP) {
-            setBrakeMode(false);
+            setBrakeMode(true);
             PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.04, Constants.kTimeOutMs),
                  mLeftMaster.getName() + " failed to set neutral deadband on openloop transition", true);
             PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.04, Constants.kTimeOutMs),
@@ -536,7 +533,7 @@ public class Drive extends Subsystem {
             mDriveControlState = DriveControlState.PATH_FOLLOWING;
             mCurrentPath = path;
         } else {
-            setVelocity(DriveSignal.NEUTRAL);
+            setVelocity(DriveSignal.BRAKE);
         }
     }
 
@@ -691,6 +688,7 @@ public class Drive extends Subsystem {
      */
     @Override
     public void zeroSensors() {
+        mPeriodicIO = new PeriodicIO();
         mNavx.reset();
         setHeading(Rotation2d.identity());
         resetEncoders();
@@ -715,7 +713,8 @@ public class Drive extends Subsystem {
         SmartDashboard.putNumber("Left Drive Velocity", getLeftLinearVelocity());
         SmartDashboard.putNumber("Right Drive Velocity", getRightLinearVelocity());
         SmartDashboard.putNumber("Left Position", getLeftEncoderPosition());
-        SmartDashboard.putNumber("Right Position", getRightEncoderPosition()); 
+        SmartDashboard.putNumber("Right Position", getRightEncoderPosition());
+        SmartDashboard.putNumber("Navx Heading", mNavx.getHeading()); 
     }
 
     

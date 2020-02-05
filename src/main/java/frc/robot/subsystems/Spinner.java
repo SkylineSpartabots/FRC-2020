@@ -8,10 +8,7 @@
 package frc.robot.subsystems;
 
 
-import edu.wpi.first.wpilibj.I2C;
-import frc.lib.sensors.ColorSensor;
-
-/**
+/*
  * Add your docs here.
  */
 public class Spinner extends Subsystem {
@@ -24,8 +21,6 @@ public class Spinner extends Subsystem {
         }
         return mInstance;
     }
-
-    //hardware
     
 
     private Spinner() {
@@ -33,7 +28,6 @@ public class Spinner extends Subsystem {
 
     @Override
     public void stop() {
-
     }
 
     @Override

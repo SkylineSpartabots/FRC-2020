@@ -7,29 +7,30 @@
 
 package frc.robot.subsystems;
 
-import com.revrobotics.CANEncoder;
-import com.revrobotics.CANPIDController;
-import com.revrobotics.ControlType;
-import com.revrobotics.EncoderType;
+import java.util.ArrayList;
+
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.InvertType;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
+import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
+import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
+import com.ctre.phoenix.motorcontrol.VelocityMeasPeriod;
 
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.lib.drivers.LazySparkMax;
 import frc.lib.drivers.LazyTalonFX;
-import frc.lib.drivers.LazyTalonSRX;
-import frc.lib.drivers.SparkMaxFactory;
-import frc.lib.drivers.SparkMaxUtil;
+import frc.lib.drivers.MotorChecker;
+import frc.lib.drivers.PheonixUtil;
+import frc.lib.drivers.TalonFXChecker;
 import frc.lib.drivers.TalonFXFactory;
-import frc.lib.drivers.TalonSRXFactory;
 import frc.lib.util.CircularBuffer;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 
-/**
- * Add your docs here.
- */
+
 public class Shooter extends Subsystem {
 
     private static Shooter mInstance = null;
@@ -41,15 +42,15 @@ public class Shooter extends Subsystem {
         return mInstance;
     }
 
+    //debug
+    private final boolean debug = false;
+
     //hardware
-    private final LazySparkMax mMasterShooter, mSlaveShooter;
-    private final CANEncoder mShooterEncoder;
-    //private final LazyTalonSRX mHoodMotor, mIndexer;
-    //private final Solenoid mRampSolenoid;
+    private final LazyTalonFX mMasterShooter, mSlaveShooter;
+    private final Solenoid mHoodSolenoid;
+
 
     //controllers
-    private final CANPIDController mPIDFController;
-    private int mCurrentSlot;
     private final int kSpinUpSlot = 0;
     private final int kHoldSlot = 1;
 
@@ -60,75 +61,95 @@ public class Shooter extends Subsystem {
     private double mOnTargetStartTime = Double.POSITIVE_INFINITY;
     private PeriodicIO mPeriodicIO;
 
-    /**
-     * configures motor for shooter
-     * @param sparkMax sets current limit and voltage compensation
-     */
-    private void configSparkForShooter(LazySparkMax sparkMax) {
-        SparkMaxUtil.setCurrentLimit(sparkMax, 30, 40);
-        SparkMaxUtil.setVoltageCompensation(sparkMax, 12.0);
+
+
+    private void configAndEnableMotorLimits(LazyTalonFX falcon) {
+        PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set voltage compensation", true);
+    
+        falcon.enableVoltageCompensation(true);
+
+        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 35, 40, 1), Constants.kTimeOutMs),
+                falcon.getName() + " failed to set output current limit", true);
+
+        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true, 60, 60, 0), Constants.kTimeOutMs),
+                falcon.getName() + " failed to set input current limit", true);
+
     }
 
-    /**
-     * sets up an encoder with measurement period, and conversion factors
-     * @param encoder the encoder being created
-     * @param sensorPhase weather the encoder is in phase or out of phase with the motor
-     */
-    private void configEncoderForShooter(CANEncoder encoder, boolean sensorPhase) {
-        SparkMaxUtil.checkError(encoder.setInverted(sensorPhase), "shooter encoder " + 
-            "failed to set sensor phase", true);
+    private void disableMotorLimits(LazyTalonFX falcon) {
+        falcon.enableVoltageCompensation(false);
 
-        SparkMaxUtil.checkError(encoder.setMeasurementPeriod(10), "shooter encoder " + 
-            "failed to set measurement period", true);
+        PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(false, 35, 40, 1), Constants.kTimeOutMs),
+                falcon.getName() + " failed to disable output current limit", true);
 
-        SparkMaxUtil.checkError(encoder.setPositionConversionFactor(Constants.kGearReduction / 
-            Constants.kNeoPPR), "shooter encoder " + "failed to set position conversion", true);
+        PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(false, 60, 60, 0), Constants.kTimeOutMs),
+                falcon.getName() + " failed to disable input current limit", true);
+    }
+
+
+    private void configFalconForShooter(LazyTalonFX falcon, InvertType inversion) {
+        falcon.setInverted(inversion);
+        falcon.setNeutralMode(NeutralMode.Coast);
+        configAndEnableMotorLimits(falcon);
+    }
+
+
+    private void configMasterForShooter(LazyTalonFX falcon, InvertType inversion, boolean sensorPhase) {
+        configFalconForShooter(falcon, inversion);
         
-        SparkMaxUtil.checkError(encoder.setVelocityConversionFactor((Constants.kGearReduction / Constants.kNeoPPR) * 6000), "shooter encoder " + //rpm || ppr = pulses per rotation
-            "failed to set sensor phase", true);
+        PheonixUtil.checkError(falcon.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, Constants.kTimeOutMs),
+            falcon.getName() + " failed to set feedback sensor", true);
+            
+        falcon.setSensorPhase(sensorPhase);
+
+        PheonixUtil.checkError(falcon.configVelocityMeasurementPeriod(VelocityMeasPeriod.Period_100Ms, Constants.kTimeOutMs), 
+                falcon.getName() + " failed to set velocity meas. period", true);
+        
+        PheonixUtil.checkError(falcon.configVelocityMeasurementWindow(1, Constants.kTimeOutMs), 
+                falcon.getName() + " failed to set velocity meas. window", true);
+        
+        PheonixUtil.checkError(falcon.configOpenloopRamp(0.0, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set open loop ramp rate", true);
+
+        PheonixUtil.checkError(falcon.configClosedloopRamp(0.0, Constants.kTimeOutMs),
+                falcon.getName() + " failed to set closed loop ramp rate", true);
+        
+        PheonixUtil.checkError(falcon.configNeutralDeadband(0.0, Constants.kTimeOutMs), 
+                falcon.getName() + " failed to set neutral deadband", true);   
     }
 
     /**
      * creates two pidf loops, one for spin up and one for holding (just kFF)
      */
     private void setControllerConstants() {
-        mPIDFController.setP(Constants.kShooterkP, kSpinUpSlot);
-        mPIDFController.setI(Constants.kShooterkI, kSpinUpSlot);
-        mPIDFController.setD(Constants.kShooterkD, kSpinUpSlot);
-        mPIDFController.setFF(Constants.kShooterkF, kSpinUpSlot);
-        mPIDFController.setIZone(Constants.kShooterIZone, kSpinUpSlot);
+        mMasterShooter.config_kP(kSpinUpSlot, Constants.kShooterkP);
+        mMasterShooter.config_kI(kSpinUpSlot, Constants.kShooterkI);
+        mMasterShooter.config_kD(kSpinUpSlot, Constants.kShooterkD);
+        mMasterShooter.config_kF(kSpinUpSlot, Constants.kShooterkF);
+        mMasterShooter.config_IntegralZone(kSpinUpSlot, Constants.kShooterIZone);
 
-        mPIDFController.setP(0.0, kHoldSlot);
-        mPIDFController.setI(0.0, kHoldSlot);
-        mPIDFController.setD(0.0, kHoldSlot);
-        mPIDFController.setFF(Constants.kShooterkF, kHoldSlot);
-        mPIDFController.setIZone(0.0, kHoldSlot);
-
-        mPIDFController.setOutputRange(-1.0, 1.0);
+        mMasterShooter.config_kP(kHoldSlot, 0.0);
+        mMasterShooter.config_kI(kHoldSlot, 0.0);
+        mMasterShooter.config_kD(kHoldSlot, 0.0);
+        mMasterShooter.config_kF(kHoldSlot, Constants.kShooterkF);
+        mMasterShooter.config_IntegralZone(kHoldSlot, 0);
     }
 
 
     private Shooter() {
         mPeriodicIO = new PeriodicIO();
 
-        mMasterShooter = SparkMaxFactory.createDefaultSparkMax("Left Shooter Neo", Ports.SHOOTER_LEFT_SHOOT_ID, false);
-        configSparkForShooter(mMasterShooter);
-        
-        mSlaveShooter = SparkMaxFactory.createSlaveSparkMax("Right Shooter Neo", Ports.SHOOTER_RIGHT_SHOOT_ID,
-             mMasterShooter, true);
-        configSparkForShooter(mSlaveShooter);
+        mMasterShooter = TalonFXFactory.createDefaultFalcon("Left Shooter Motor", Ports.SHOOTER_LEFT_SHOOT_ID);
+        configMasterForShooter(mMasterShooter, InvertType.None, false);
 
-        mShooterEncoder = mMasterShooter.getEncoder();
-        configEncoderForShooter(mShooterEncoder, false);
 
-        mPIDFController = mMasterShooter.getPIDController();
+        mSlaveShooter = TalonFXFactory.createSlaveFalcon("Right Shooter Motor", Ports.SHOOTER_RIGHT_SHOOT_ID, Ports.SHOOTER_LEFT_SHOOT_ID);
+        configFalconForShooter(mSlaveShooter, InvertType.FollowMaster);
+
         setControllerConstants();
 
-        mMasterShooter.burnFlash(); // "remembers" the current settings even after power cut. expensive product
-        mSlaveShooter.burnFlash();
-    
-
-        //mRampSolenoid = new Solenoid(Ports.SHOOTER_RAMP_SOLENOID_PORT);
+        mHoodSolenoid = new Solenoid(Ports.SHOOTER_HOOD_SOLENOID_PORT);
     }
 
     /**
@@ -136,17 +157,11 @@ public class Shooter extends Subsystem {
      */
     private static class PeriodicIO {
         //inputs
-        public double velocity;
-        public double prev_velocity;
         public double velocity_in_ticks_per_100ms;
-    
         public double voltage;
-        public double master_shooter_temp; // celcius
-        public double slave_shooter_temp;
 
         //outputs
         public double setpoint_rpm;
-        public double prev_setpoint_rpm;
     }
 
     /**
@@ -154,12 +169,8 @@ public class Shooter extends Subsystem {
      */
     @Override
     public void readPeriodicInputs() {
-        mPeriodicIO.velocity = 
-        mPeriodicIO.velocity_in_ticks_per_100ms = 42.0 / 600.0 * mPeriodicIO.velocity;
-        mPeriodicIO.voltage = mMasterShooter.getAppliedOutput() * mMasterShooter.getBusVoltage(); // fraction of voltage used * voltage coming in
-
-        mPeriodicIO.master_shooter_temp = mMasterShooter.getMotorTemperature();
-        mPeriodicIO.slave_shooter_temp = mSlaveShooter.getMotorTemperature();
+        mPeriodicIO.velocity_in_ticks_per_100ms = mMasterShooter.getSelectedSensorVelocity(0);
+        mPeriodicIO.voltage = mMasterShooter.getMotorOutputPercent() * mMasterShooter.getBusVoltage(); 
     }
 
 
@@ -199,6 +210,22 @@ public class Shooter extends Subsystem {
         });
     }
 
+
+    public synchronized void shootFromDistance(double distanceInFeet) {
+        if(distanceInFeet > Constants.kHoodEnableDistance) {
+            mHoodSolenoid.set(true);
+        } else {
+            mHoodSolenoid.set(false);
+        }
+
+        //TODO: logic (function) for converting distances into desired velocities.
+        //TODO: update over time, prevent oscillation from hold to hold when ready
+
+        double desiredVelocity = 1000;
+        setHoldWhenReady(desiredVelocity);
+
+    }
+
     /**
      * enum for managing the current status of the shooter.
      * open loop: for testing purposes
@@ -213,6 +240,8 @@ public class Shooter extends Subsystem {
         HOLD 
     }
 
+
+
     /**
      * configs for open loop if not in open loop.
      * sets current limit and voltage comp
@@ -221,14 +250,14 @@ public class Shooter extends Subsystem {
     public synchronized void setOpenLoop(double percentOutput) {
         if(mControlState != ShooterControlState.OPEN_LOOP) {
             mControlState = ShooterControlState.OPEN_LOOP;
-            SparkMaxUtil.setCurrentLimit(mMasterShooter, 30, 40);
-            SparkMaxUtil.setVoltageCompensation(mMasterShooter, 12.0);
-            SparkMaxUtil.setCurrentLimit(mSlaveShooter, 30, 40);
-            SparkMaxUtil.setVoltageCompensation(mSlaveShooter, 12.0);
+           
+            configAndEnableMotorLimits(mMasterShooter);
+            configAndEnableMotorLimits(mSlaveShooter);
+
 
         }
      
-        mMasterShooter.set(ControlType.kDutyCycle, percentOutput);
+        mMasterShooter.set(ControlMode.PercentOutput, percentOutput);
     }
 
     /**
@@ -259,15 +288,12 @@ public class Shooter extends Subsystem {
      */
     private void configForSpinUp() {
         mControlState = ShooterControlState.SPIN_UP;
-        mCurrentSlot = kSpinUpSlot;
+        mMasterShooter.selectProfileSlot(kSpinUpSlot, 0);
 
-        mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
+        mMasterShooter.configClosedloopRamp(Constants.kShooterRampRate, Constants.kTimeOutMs);
 
-        SparkMaxUtil.disableCurrentLimit(mMasterShooter);
-        SparkMaxUtil.disableCurrentLimit(mSlaveShooter);
-
-        SparkMaxUtil.disableVoltageCompensation(mMasterShooter);
-        SparkMaxUtil.disableVoltageCompensation(mSlaveShooter);
+        disableMotorLimits(mMasterShooter);
+        disableMotorLimits(mSlaveShooter);
     }
 
     /**
@@ -276,15 +302,12 @@ public class Shooter extends Subsystem {
      */
     private void configForHoldWhenReady() {
         mControlState = ShooterControlState.HOLD_WHEN_READY;
-        mCurrentSlot = kSpinUpSlot;
+        mMasterShooter.selectProfileSlot(kSpinUpSlot, 0);
 
-        mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
+        mMasterShooter.configClosedloopRamp(Constants.kShooterRampRate, Constants.kTimeOutMs);
 
-        SparkMaxUtil.disableCurrentLimit(mMasterShooter);
-        SparkMaxUtil.disableCurrentLimit(mSlaveShooter);
-
-        SparkMaxUtil.disableVoltageCompensation(mMasterShooter);
-        SparkMaxUtil.disableVoltageCompensation(mSlaveShooter);
+        disableMotorLimits(mMasterShooter);
+        disableMotorLimits(mSlaveShooter);
     }
 
     /**
@@ -293,15 +316,15 @@ public class Shooter extends Subsystem {
      */
     private void configForHold() {
         mControlState = ShooterControlState.HOLD;
-        mCurrentSlot = kHoldSlot;
-        mPIDFController.setFF(mKfEstimator.getAverage(), mCurrentSlot);
-        mMasterShooter.setClosedLoopRampRate(Constants.kShooterRampRate);
+        mMasterShooter.selectProfileSlot(kHoldSlot, 0);
+        mMasterShooter.config_kF(kHoldSlot, mKfEstimator.getAverage());
+        mMasterShooter.configClosedloopRamp(Constants.kShooterRampRate);
 
-        SparkMaxUtil.disableCurrentLimit(mMasterShooter);
-        SparkMaxUtil.disableCurrentLimit(mSlaveShooter);
+        disableMotorLimits(mMasterShooter);
+        disableMotorLimits(mSlaveShooter);
 
-        SparkMaxUtil.setVoltageCompensation(mMasterShooter, 12.0);
-        SparkMaxUtil.setVoltageCompensation(mSlaveShooter, 12.0);
+        mMasterShooter.enableVoltageCompensation(true);
+        mMasterShooter.enableVoltageCompensation(true);
     }
 
     /**
@@ -317,7 +340,7 @@ public class Shooter extends Subsystem {
      * @return calculated feed forward output.
      */
     private double estimateKf() { 
-        final double output = 1023.0 / 12.0 * mPeriodicIO.voltage;
+        final double output = 1023.0 / mPeriodicIO.voltage;
         return output/mPeriodicIO.velocity_in_ticks_per_100ms;
     }
 
@@ -331,11 +354,12 @@ public class Shooter extends Subsystem {
      */
     private void handleClosedLoop(double timestamp) {
 
+
         if(mControlState == ShooterControlState.SPIN_UP) {
-            mMasterShooter.set(ControlType.kVelocity, mPeriodicIO.setpoint_rpm, mCurrentSlot);
+            mMasterShooter.set(ControlMode.Velocity, mPeriodicIO.setpoint_rpm);
             resetHold();
         } else if(mControlState == ShooterControlState.HOLD_WHEN_READY) {
-            final double abs_error = Math.abs(mPeriodicIO.velocity - mPeriodicIO.setpoint_rpm);
+            final double abs_error = Math.abs(mPeriodicIO.velocity_in_ticks_per_100ms - mPeriodicIO.setpoint_rpm);
             final boolean on_target_now = mOnTarget ? abs_error < Constants.kShooterStopOnTargetRpm :
                 abs_error < Constants.kShooterStartOnTargetRpm;
             
@@ -353,14 +377,14 @@ public class Shooter extends Subsystem {
             if(mKfEstimator.getNumValues() >= Constants.kShooterMinOnTargetSamples) {
                 configForHold();
             } else {
-                mMasterShooter.set(ControlType.kVelocity, mPeriodicIO.setpoint_rpm, mCurrentSlot);
+                mMasterShooter.set(ControlMode.Velocity, mPeriodicIO.setpoint_rpm);
             }
         }
 
         if(mControlState == ShooterControlState.HOLD) {
-            if(mPeriodicIO.velocity > mPeriodicIO.setpoint_rpm) { //add logic from going in between hold when ready and hold, maybe use stop on target threshold
+            if(mPeriodicIO.velocity_in_ticks_per_100ms > mPeriodicIO.setpoint_rpm) { //add logic from going in between hold when ready and hold, maybe use stop on target threshold
                 mKfEstimator.addValue(estimateKf());
-                mPIDFController.setFF(mKfEstimator.getAverage(), kHoldSlot);
+                mMasterShooter.config_kF(kHoldSlot, mKfEstimator.getAverage());
             }
         }
     }
@@ -381,6 +405,11 @@ public class Shooter extends Subsystem {
         return mPeriodicIO.setpoint_rpm;
     }
 
+
+    public synchronized void setHoodEnabled(boolean isEnabled) {
+        mHoodSolenoid.set(isEnabled);
+    }
+
     /**
      * sets open loop to zero and rpm setpoint to zero
      */
@@ -395,18 +424,54 @@ public class Shooter extends Subsystem {
      */
     @Override
     public boolean checkSystem() {
-        return false;
+        mHoodSolenoid.set(true);
+
+        boolean check = TalonFXChecker.checkMotors(this,
+            new ArrayList<MotorChecker.MotorConfig<LazyTalonFX>>() {    
+            private static final long serialVersionUID = 1L;
+
+                    {
+                    add(new MotorChecker.MotorConfig<>(mMasterShooter));
+                    add(new MotorChecker.MotorConfig<>(mSlaveShooter));
+                }
+            }, new MotorChecker.CheckerConfig() {
+                {
+                    mOutputPercent = 0.5;
+                    mRuntime = 1.5;
+                    mWaittime = 0.7;
+
+                    mRPMFloor = 2000;
+                    mRPMEpsilon = 5.0;
+
+                    mRPMSupplier = () -> mMasterShooter.getSelectedSensorVelocity(0);
+                }
+            });
+
+        mHoodSolenoid.set(false);
+
+        return check;
     }
 
-    /**
-     * Outputs to smart dashboard.
-     * Outputs IF on target rpm, target rpm, and current velocity (rpm)
-     */
+
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Ready to Fire?", isOnTarget());
-        SmartDashboard.putNumber("Shooter Setpoint RPM", mPeriodicIO.setpoint_rpm);
-        SmartDashboard.putNumber("Shooter RPM", mPeriodicIO.velocity);
-        
+
+        if(debug) {
+            SmartDashboard.putString("Shooter state", mControlState.toString());
+            
+            SmartDashboard.putBoolean("Hood Solenoid", mHoodSolenoid.get());
+
+            SmartDashboard.putNumber("Shooter Velocity", mPeriodicIO.velocity_in_ticks_per_100ms);
+            SmartDashboard.putNumber("Shooter Setpoint RPM", mPeriodicIO.setpoint_rpm);
+            
+            SmartDashboard.putNumber("Left Shooter Stator Current", mMasterShooter.getStatorCurrent());
+            SmartDashboard.putNumber("Left Shooter Supply Current", mMasterShooter.getSupplyCurrent());
+            SmartDashboard.putNumber("Left Shooter Voltage", mMasterShooter.getBusVoltage() * mMasterShooter.getMotorOutputPercent());
+
+            SmartDashboard.putNumber("Right Shooter Stator Current", mSlaveShooter.getStatorCurrent());
+            SmartDashboard.putNumber("Right Shooter Supply Current", mSlaveShooter.getSupplyCurrent());
+            SmartDashboard.putNumber("Right Shooter Voltage", mSlaveShooter.getBusVoltage() * mSlaveShooter.getMotorOutputPercent());
+        }
     }
 }

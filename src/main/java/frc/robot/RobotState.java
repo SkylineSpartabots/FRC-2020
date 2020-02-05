@@ -41,7 +41,7 @@ public class RobotState {
     public synchronized void reset(double start_time, Pose2d inital_field_to_vehicle) {
         field_to_vehicle_ = new InterpolatingTreeMap<>(kObservationBufferSize);
         field_to_vehicle_.put(new InterpolatingDouble(start_time), inital_field_to_vehicle);
-        Drive.getInstance().setHeading(inital_field_to_vehicle.getRotation());
+        //Drive.getInstance().setHeading(inital_field_to_vehicle.getRotation());
         vehicle_velocity_predicted_ = Twist2d.identity();
         vehicle_velocity_measured_ = Twist2d.identity();
         distance_driven_ = 0.0;

@@ -17,6 +17,7 @@ public class Constants {
 
 	//Timeout for CAN commands and error checking
 	public static final int kTimeOutMs = 100;
+	public static final int kOnTheFlyTimeoutMs = 10;
 
 	//Cycle speed for looper threads
 	public static final double kLooperDt = 0.01;
@@ -100,12 +101,14 @@ public class Constants {
 	public static final double kShooterkI = 0.00008;
 	public static final double kShooterkD = 0;
 	public static final double kShooterkF = 0.03;
-	public static final double kShooterIZone = 0;
+	public static final int kShooterIZone = 0;
 	public static final double kShooterStartOnTargetRpm = 0;
 	public static final double kShooterStopOnTargetRpm = 0;
 	public static final int kShooterMinOnTargetSamples = 0;
 
 	public static final double kCompressorShutOffCurrent = 0;
+	public static final double kHoodEnableDistance = 0;
+
 	
 
 	static {
