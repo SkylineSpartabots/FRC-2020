@@ -1,9 +1,3 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018-2019 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
 
 package frc.robot.subsystems;
 
@@ -57,8 +51,8 @@ public class Drive extends Subsystem {
     }
 
     // hardware
-    private final LazyTalonFX mLeftMaster, mLeftSlave, mRightMaster, mRightSlave;
-    private final Navx mNavx;
+    private LazyTalonFX mLeftMaster, mLeftSlave, mRightMaster, mRightSlave;
+    private Navx mNavx;
 
     // hardware states
     private boolean mIsBrakeMode;
@@ -132,34 +126,37 @@ public class Drive extends Subsystem {
         mLeftMaster = TalonFXFactory.createDefaultFalcon("Drive Left Master", Ports.DRIVE_LEFT_MASTER_ID);
         configureMasterForDrive(mLeftMaster, InvertType.None, false);
 
-        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
+        mLeftSlave = TalonFXFactory.createSlaveFalcon("Drive Left Slave", Ports.DRIVE_LEFT_SLAVE_ID,
+             Ports.DRIVE_LEFT_MASTER_ID);
         configureMotorForDrive(mLeftSlave, InvertType.FollowMaster);
         mLeftSlave.setMaster(mLeftMaster);
 
         mRightMaster = TalonFXFactory.createDefaultFalcon("Drive Right Master", Ports.DRIVE_RIGHT_MASTER_ID);
         configureMasterForDrive(mRightMaster, InvertType.InvertMotorOutput, false);
 
-        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID, Ports.DRIVE_LEFT_MASTER_ID);
+        mRightSlave = TalonFXFactory.createSlaveFalcon("Drive Right Slave", Ports.DRIVE_RIGHT_SLAVE_ID,
+             Ports.DRIVE_RIGHT_MASTER_ID);
         configureMotorForDrive(mRightSlave, InvertType.FollowMaster);
         mRightSlave.setMaster(mRightMaster);
 
         mNavx = Navx.getInstance();
 
-        SmartDashboard.putNumber("Turn kP", 0.01);
+        mIsBrakeMode = false;
+        setBrakeMode(true);
+        setOpenLoop(DriveSignal.NEUTRAL);
+
+        /*SmartDashboard.putNumber("Turn kP", 0.01);
         SmartDashboard.putNumber("Turn kI", 0.0);
         SmartDashboard.putNumber("Turn kD", 0.0);
 
         mTurnController = new PIDController(SmartDashboard.getNumber("Turn kP", 0),
              SmartDashboard.getNumber("Turn kI", 0.0), SmartDashboard.getNumber("Turn kD", 0.0),
-             () -> getHeading().getDegrees(), 5);
+             () -> getHeading().getDegrees(), 5);*/
 
-        mTurnController.setIRange(5);
+        //mTurnController.setIRange(5);
         //mTurnController.enableDebug();
 
-        mIsBrakeMode = false;
-        setBrakeMode(true);
-
-        setOpenLoop(DriveSignal.NEUTRAL);
+        
     }
 
     /**
@@ -224,8 +221,6 @@ public class Drive extends Subsystem {
      */
     @Override
     public void writePeriodicOutputs() {
-    
-
         if (mDriveControlState != null) {
             mLeftMaster.set(ControlMode.PercentOutput, mPeriodicIO.left_demand);
             mRightMaster.set(ControlMode.PercentOutput, mPeriodicIO.right_demand);
@@ -251,7 +246,7 @@ public class Drive extends Subsystem {
             @Override
             public void onLoop(double timestamp) {
                 synchronized (Drive.this) {
-                    handleFaults();
+                    //handleFaults();
                     //System.out.println(mDriveControlState);
                     switch (mDriveControlState) {
                     case OPEN_LOOP:
@@ -306,7 +301,7 @@ public class Drive extends Subsystem {
      * @return right encoder distance (raw) per second
      */
     public double getRightLinearVelocity() {
-        return (mPeriodicIO.left_velocity_per_50ms / 2048) * 0.0972 * Math.PI * Constants.kDriveWheelDiameter * 20.0;
+        return (mPeriodicIO.right_velocity_per_50ms / 2048) * 0.0972 * Math.PI * Constants.kDriveWheelDiameter * 20.0;
     }   
 
     /**
@@ -346,6 +341,7 @@ public class Drive extends Subsystem {
             PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.04, Constants.kTimeOutMs),
                  mRightMaster.getName() + " failed to set neutral deadband on openloop transition", true);
             mDriveControlState = DriveControlState.OPEN_LOOP;
+            //System.out.println("set open loop in setopenloop in das tingso");
         }
 
         mPeriodicIO.left_demand = signal.getLeft();
@@ -456,7 +452,7 @@ public class Drive extends Subsystem {
                 rightMotorOutput = throttle - turn;
             }
         }
-
+        //System.out.println("arcade drive");
         setOpenLoop(new DriveSignal(Util.limit(leftMotorOutput, -1.0, 1.0), Util.limit(rightMotorOutput, -1.0, 1.0)));
         
     }
@@ -520,6 +516,7 @@ public class Drive extends Subsystem {
     public synchronized void setDrivePath(Path path, boolean reversed) {
         if (mCurrentPath != path || mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             RobotState.getInstance().resetDistanceDriven();
+            mDriveControlState = DriveControlState.PATH_FOLLOWING;
             mPathFollower = new PathFollower(path, reversed,
                     new PathFollower.Parameters(
                             new LookAhead(Constants.kMinLookAhead, Constants.kMaxLookAhead,
@@ -530,10 +527,12 @@ public class Drive extends Subsystem {
                             Constants.kPathFollowingProfileKs, Constants.kPathFollowingMaxVel,
                             Constants.kPathFollowingMaxAccel, Constants.kPathFollowingGoalPosTolerance,
                             Constants.kPathFollowingGoalVelTolerance, Constants.kPathStopSteeringDistance));
-            mDriveControlState = DriveControlState.PATH_FOLLOWING;
+            
             mCurrentPath = path;
+            System.out.println("Path SET!!!!!!!!!!!!!!!!!!");
         } else {
             setVelocity(DriveSignal.BRAKE);
+            //System.out.println("WE ARE FAILURS!!!!!!!!!!");
         }
     }
 
@@ -543,10 +542,12 @@ public class Drive extends Subsystem {
      * @return if path following exists, check if it's finished
      */
     public synchronized boolean isDoneWithPath() {
+        //System.out.println("state: " + mDriveControlState.toString());
+        //System.out.println(" mPathFollower: " + (mPathFollower!=null));
         if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             return mPathFollower.isFinished();
         } else {
-            TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
+            TelemetryUtil.print("Robot is not in a path following statee", PrintStyle.NONE, false);
             return true;
         }
         
@@ -559,21 +560,27 @@ public class Drive extends Subsystem {
         if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
             mPathFollower.forceFinish();
         }
-        TelemetryUtil.print("Robot is not in a path following state", PrintStyle.NONE, false);
+        TelemetryUtil.print("Robot is not in a path following state!", PrintStyle.NONE, false);
     }
 
     /**
      * continuously updates path following state. Reads from robot_state sets velocity to the motors according to the current path.
      * @param timestamp current timestamp in milliseconds
      */
-    private void updatePathFollower(double timestamp) {
-        if (mDriveControlState == DriveControlState.PATH_FOLLOWING && mPathFollower != null) {
+    private synchronized void updatePathFollower(double timestamp) {
+        if (mPathFollower != null) {
             RobotState robot_state = RobotState.getInstance();
             Pose2d field_to_vehicle = robot_state.getLatestFieldToVehicle().getValue();
             Twist2d command = mPathFollower.update(timestamp, field_to_vehicle, robot_state.getDistanceDriven(),
                     robot_state.getPredictedVelocity().dx);
+
+
+
             if (!mPathFollower.isFinished()) {
                 DriveSignal setpoint = Kinematics.inverseKinematics(command);
+                SmartDashboard.putNumber("Left Output", setpoint.getLeft());
+                SmartDashboard.putNumber("Right Output", setpoint.getRight());
+                //System.out.println("Output: " + setpoint);
                 setVelocity(setpoint);
             } else {
                 if (!mPathFollower.isForceFinished()) {
@@ -699,7 +706,8 @@ public class Drive extends Subsystem {
      */
     @Override
     public void stop() {
-        setOpenLoop(DriveSignal.NEUTRAL);
+       // System.out.println("drive stop called");
+        setVelocity(DriveSignal.NEUTRAL);
     }
 
     /**
@@ -714,7 +722,7 @@ public class Drive extends Subsystem {
         SmartDashboard.putNumber("Right Drive Velocity", getRightLinearVelocity());
         SmartDashboard.putNumber("Left Position", getLeftEncoderPosition());
         SmartDashboard.putNumber("Right Position", getRightEncoderPosition());
-        SmartDashboard.putNumber("Navx Heading", mNavx.getHeading()); 
+        SmartDashboard.putNumber(" NavX Heading", mNavx.getHeading()); 
     }
 
     

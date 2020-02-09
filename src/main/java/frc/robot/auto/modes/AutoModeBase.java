@@ -16,7 +16,7 @@ import frc.robot.auto.actions.Action;
  * Add your docs here.
  */
 public abstract class AutoModeBase {
-    protected final double mUpdateRate = 1.0/50.0;
+    protected final double mUpdateRate = 1.0 / 50.0;
     protected boolean mActive = false;
     protected boolean mIsInterrupted = false;
 
@@ -27,7 +27,7 @@ public abstract class AutoModeBase {
 
         try {
             routine();
-        } catch(ModeEndedException e) {
+        } catch (ModeEndedException e) {
             TelemetryUtil.print("Auto mode ended early", PrintStyle.ERROR, false);
             return;
         }
@@ -58,7 +58,7 @@ public abstract class AutoModeBase {
     }
 
     public boolean isActiveWithThrow() throws ModeEndedException {
-        if(!isActive()) {
+        if (!isActive()) {
             throw new ModeEndedException();
         }
 
@@ -78,7 +78,7 @@ public abstract class AutoModeBase {
         }
 
         action.start();
-
+        
         while(isActiveWithThrow() && !action.isFinished() && !mIsInterrupted) {
             action.update();
 
@@ -88,7 +88,6 @@ public abstract class AutoModeBase {
                 e.printStackTrace();
             }
         }
-
         action.done();
     }
 

@@ -7,6 +7,7 @@
 
 package frc.robot.subsystems;
 
+import frc.lib.geometry.Pose2d;
 import frc.lib.geometry.Rotation2d;
 import frc.lib.geometry.Twist2d;
 import frc.lib.util.TelemetryUtil;
@@ -19,19 +20,21 @@ import frc.robot.loops.Loop;
 
 public class RobotStateEstimator extends Subsystem {
 
-    private static RobotStateEstimator mInstance;
+    static RobotStateEstimator mInstance = new RobotStateEstimator();
+    private RobotState mRobotState = RobotState.getInstance();
+    private Drive mDrive = Drive.getInstance();
+    private double left_encoder_prev_distance_ = 0.0;
+    private double right_encoder_prev_distance_ = 0.0;
+    private double prev_timestamp_ = -1.0;
+    private Rotation2d prev_heading_ = null;
 
     public static RobotStateEstimator getInstance() {
-        if(mInstance == null) {
+        if (mInstance == null) {
             mInstance = new RobotStateEstimator();
-        } 
+        }
+
         return mInstance;
     }
-
-    private Drive mDrive = Drive.getInstance();
-    private RobotState mRobotState = RobotState.getInstance();
-    private double mLeftPrevDistance = 0.0;
-    private double mRightPrevDistance = 0.0;
 
     private RobotStateEstimator() {}
 
@@ -41,53 +44,57 @@ public class RobotStateEstimator extends Subsystem {
     }
 
     private class EnabledLoop implements Loop {
-
         @Override
-        public void onStart(double timestamp) {
-            mLeftPrevDistance = mDrive.getLeftEncoderPosition();
-            mRightPrevDistance = mDrive.getRightEncoderPosition();
-            TelemetryUtil.print("Left Prev: " + mLeftPrevDistance, PrintStyle.ERROR, false);
-            mDrive.zeroSensors();
+        public synchronized void onStart(double timestamp) {
+            left_encoder_prev_distance_ = mDrive.getLeftEncoderPosition();
+            right_encoder_prev_distance_ = mDrive.getRightEncoderPosition();
+            prev_timestamp_ = timestamp;
         }
 
         @Override
-        public void onLoop(double timestamp) {
-
-            final double leftDisance = mDrive.getLeftEncoderPosition();
-            final double rightDistance = mDrive.getRightEncoderPosition();
-            final double deltaLeft = leftDisance - mLeftPrevDistance;
-            final double deltaRight = rightDistance - mRightPrevDistance;
-            final Rotation2d heading = mDrive.getHeading();
-            final Twist2d odometry_velocity = mRobotState.generateOdometryFromSensors(deltaLeft, 
-                deltaRight, heading);
+        public synchronized void onLoop(double timestamp) {
+            if (prev_heading_ == null) {
+                prev_heading_ = mRobotState.getLatestFieldToVehicle().getValue().getRotation();
+            }
+            final double dt = timestamp - prev_timestamp_;
+            final double left_distance = mDrive.getLeftEncoderPosition();
+            final double right_distance = mDrive.getRightEncoderPosition();
+            final double delta_left = left_distance - left_encoder_prev_distance_;
+            final double delta_right = right_distance - right_encoder_prev_distance_;
+            final Rotation2d gyro_angle = mDrive.getHeading();
+            Twist2d odometry_twist;
+            synchronized (mRobotState) {
+                final Pose2d last_measurement = mRobotState.getLatestFieldToVehicle().getValue();
+                odometry_twist = Kinematics.forwardKinematics(last_measurement.getRotation(), delta_left,
+                        delta_right, gyro_angle);
+            }
+            final Twist2d measured_velocity = Kinematics.forwardKinematics(
+                    delta_left, delta_right, prev_heading_.inverse().rotateBy(gyro_angle).getRadians()).scaled(1.0 / dt);
             final Twist2d predicted_velocity = Kinematics.forwardKinematics(mDrive.getLeftLinearVelocity(),
-                mDrive.getRightLinearVelocity());
-    
-            mRobotState.addObservations(timestamp, odometry_velocity, predicted_velocity);
-            mLeftPrevDistance = leftDisance;
-            mRightPrevDistance = rightDistance;
+                    mDrive.getRightLinearVelocity()).scaled(dt);
 
+            mRobotState.addObservations(timestamp, odometry_twist, measured_velocity,
+                    predicted_velocity);
+            left_encoder_prev_distance_ = left_distance;
+            right_encoder_prev_distance_ = right_distance;
+            prev_heading_ = gyro_angle;
+            prev_timestamp_ = timestamp;
         }
 
         @Override
-        public void onStop(double timestamp) {
-        }
-
+        public void onStop(double timestamp) {}
     }
-
 
     @Override
-    public void stop() {
-
-    }
+    public void stop() {}
 
     @Override
     public boolean checkSystem() {
-        return false;
+        return true;
     }
 
     @Override
     public void outputTelemetry() {
-
+        mRobotState.outputToSmartDashboard();
     }
 }

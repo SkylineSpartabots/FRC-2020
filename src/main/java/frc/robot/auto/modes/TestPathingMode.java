@@ -30,7 +30,7 @@ public class TestPathingMode extends AutoModeBase {
         mLeft = left;
 
         mFirstPath = new DrivePathAction(new TestPath1(left));
-        mSecondPath = new DrivePathAction(new TestPath2(left));
+        //mSecondPath = new DrivePathAction(new TestPath2(left));
         
     }
 

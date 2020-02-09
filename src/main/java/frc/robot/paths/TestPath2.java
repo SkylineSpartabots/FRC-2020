@@ -26,10 +26,9 @@ public class TestPath2 implements PathContainer {
     @Override
     public Path buildPath() {
         ArrayList<Waypoint> waypoints = new ArrayList<Waypoint>();
-        waypoints.add(new Waypoint(0, 0.0, 0, 0));
-        waypoints.add(new Waypoint(30, 0.0, 0, 40.0));
-        //waypoints.add(new Waypoint(110, 1.5, 1, 60.0));
-        waypoints.add(new Waypoint(205, 3, 0, 60));
+        waypoints.add(new Waypoint(80, 0.0, 0, 50));
+        waypoints.add(new Waypoint(0, 0.0, 0, 0.0));
+    
         return PathBuilder.buildPathFromWaypoints(waypoints);
     }
 

@@ -11,9 +11,12 @@ import java.util.Optional;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Watchdog;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
 import frc.lib.geometry.Pose2d;
+import frc.lib.geometry.Rotation2d;
 import frc.lib.util.CrashTracker;
 import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
@@ -80,17 +83,18 @@ public class Robot extends TimedRobot {
       CrashTracker.logRobotInit();
 
       mLimelight = new Limelight(Constants.kShooterLimelightConstants);
-
       mSubsystemManager.setSubsystems(
-        //mDrive,
-        mLimelight,
+        mDrive,
         mRobotStateEstimator
       );
 
       mSubsystemManager.registerEnabledLoops(mEnabledLooper);
       mSubsystemManager.registerDisabledLoops(mDisabledLooper);
 
-      //mDrive.setHeading(Rotation2d.identity());
+      mDrive.zeroSensors();
+      mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
+      mDrive.setHeading(Rotation2d.identity());
+  
       
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -125,17 +129,13 @@ public class Robot extends TimedRobot {
         mTestModeExecutor.stop();
       }
 
-      
-
-      //Zero sensors accordingly
-      //mDrive.zeroSensors();
-      mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
-
 
       mModeSelector.reset();
       mModeSelector.updateModeSelection();
       mAutoModeExecutor = new ModeExecutor();
       mTestModeExecutor = new ModeExecutor();
+      mDrive.zeroSensors();
+      mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
 
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -147,6 +147,7 @@ public class Robot extends TimedRobot {
   public void disabledPeriodic() {
     try {
 
+      mDrive.setBrakeMode(false);
       mModeSelector.updateModeSelection();
 
       Optional<AutoModeBase> autoMode = mModeSelector.getAutoMode();
@@ -177,7 +178,7 @@ public class Robot extends TimedRobot {
       mTestModeExecutor.stop();
       //Zero sensors and robot state accordingly
 
-      //mDrive.zeroSensors();
+      mDrive.zeroSensors();
       mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
       
       mAutoModeExecutor.start();
@@ -217,7 +218,7 @@ public class Robot extends TimedRobot {
         mAutoModeExecutor.stop();
       }
       mLimelight.setLed(LedMode.OFF);
-      //mDrive.zeroSensors();
+      mDrive.zeroSensors();
       mRobotState.reset(Timer.getFPGATimestamp(), new Pose2d());
 
       TelemetryUtil.print("Robot Pose X: " + mRobotState.getLatestFieldToVehicle().getValue().getTranslation().x(), 
@@ -236,7 +237,8 @@ public class Robot extends TimedRobot {
     try {
       mDriveController.update();
 
-    
+      driverControl();
+      
       SmartDashboard.putString("Target Distance", (int)mLimelight.getDistance()/12 + "', " + mLimelight.getDistance()%12);
       SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
       SmartDashboard.putNumber("X Offset", mLimelight.getXOffset());
@@ -280,7 +282,7 @@ public class Robot extends TimedRobot {
 
   public void driverControl() {
 
-    //mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+    mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
       
     /*if(mDriveController.bButton.isBeingPressed()) {
       visionTrackEnabled = false;
