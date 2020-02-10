@@ -7,9 +7,8 @@
 
 package frc.robot.auto.actions;
 
-import frc.lib.control.Path;
+import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import frc.lib.util.DriveSignal;
-import frc.robot.paths.PathContainer;
 import frc.robot.subsystems.Drive;
 
 /**
@@ -17,24 +16,19 @@ import frc.robot.subsystems.Drive;
  */
 public class DrivePathAction implements Action {
 
-    private PathContainer mPathContainer;
-    private Path mPath;
+    private Trajectory mPath;
     private Drive mDrive = Drive.getInstance();
     private boolean mStopWhenDone;
 
-    public DrivePathAction(PathContainer p, boolean stopWhenDone) {
-        mPathContainer = p;
-        mPath = mPathContainer.buildPath();
+    public DrivePathAction(Trajectory path, boolean stopWhenDone) {
+        mPath = path;
         mStopWhenDone = stopWhenDone;
     }
 
-    public DrivePathAction(PathContainer p) {
-        this(p, false);
-    }
     
     @Override
     public void start() {
-        mDrive.setDrivePath(mPath, mPathContainer.isReversed());
+        mDrive.setDrivePath(mPath);
     }
 
     @Override

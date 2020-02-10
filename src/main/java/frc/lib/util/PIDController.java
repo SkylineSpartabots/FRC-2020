@@ -1,148 +1,169 @@
 
 package frc.lib.util;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-
-/**
- * Add your docs here.
- */
 public class PIDController {
-    private double kP, kI, kD;
-    private double desiredValue;
-    protected double prevError;
-    private double errorSum;
-    private double minOutput, maxOutput;
-    protected boolean debug;
-    private double lastTime;
-    private double deltaTime;
-    private double iRange;
-    private DoubleSupplier sensorInput;
-    private Timer finishedTimer;
-    private double finishedTime;
+    private double mKp;
+    private double mKi;
+    private double mKd;
 
-    public PIDController(double kP, double kI, double kD, DoubleSupplier sensorInput, double finishedTime) {
-        this.kP = kP;
-        this.kI = kI;
-        this.kD = kD;
-        this.finishedTime = finishedTime;
-        this.sensorInput = sensorInput;
-        desiredValue = 0.0;
-        maxOutput = 1.0;
-        debug = false;
-        minOutput = -1;
-        iRange = Double.MAX_VALUE; //this is a default value to always apply I until explicity told not to
+    private double mMaximumIntegral = 1.0;
+    private double mMinimumIntegral = -1.0;
+
+    private double mMaximumInput;
+    private double mMinimumInput;
+
+    private double mInputRange;
+
+    private boolean mIsWrapping;
+
+    private double mPrevTimestamp = 0.0;
+
+    private double mPositionError;
+    private double mVelocityError;
+
+    private double mPrevError;
+    private double mTotalError;
+
+    private double mPositionTolerance = 0.05;
+    private double mVelocityTolerance = Double.POSITIVE_INFINITY;
+
+    private double mSetpoint;
+
+    public PIDController(double Kp, double Ki, double Kd) {
+        mKp = Kp;
+        mKi = Ki;
+        mKd = Kd;
     }
 
-    public void setConstants(double kP, double kI, double kD) {
-        this.kP = kP;
-        this.kI = kI;
-        this.kD = kD;
+    public void setPID(double Kp, double Ki, double Kd) {
+        mKp = Kp;
+        mKi = Ki;
+        mKd = Kd;
     }
 
-
-    public void setDesiredValue(double desiredValue) {
-        this.desiredValue = desiredValue;
+    public void setP(double Kp) {
+        mKp = Kp;
     }
 
-    public void enableDebug() {
-        debug = true;
+    public void setI(double Ki) {
+        mKi = Ki;
     }
 
-    public void disableDebug() {
-        debug = false;
+    public void setD(double Kd) {
+        mKd = Kd;
     }
 
-    public void setMinMaxOutput(double minOutput, double maxOutput) {
-        this.minOutput = minOutput;
-        this.maxOutput = maxOutput;
+    public double getP() {
+        return mKp;
     }
 
-
-    public void resetErrorSum() {
-        errorSum = 0.0;
+    public double getI() {
+        return mKi;
     }
 
-    public double getDesiredValue() {
-        return desiredValue;
+    public double getD() {
+        return mKd;
     }
 
-    public void setIRange(double iRange) {
-        this.iRange = iRange;
+    public void setSetpoint(double setpoint) {
+        if (mMaximumInput > mMinimumInput) {
+            mSetpoint = Util.limit(setpoint, mMinimumInput, mMaximumInput);
+        } else {
+            mSetpoint = setpoint;
+        }
     }
 
-    public double getIRange() {
-        return this.iRange;
+    public double getSetpoint() {
+        return mSetpoint;
+    }
+
+    public boolean atSetpoint() {
+        return Math.abs(mPositionError) < mPositionTolerance && Math.abs(mVelocityError) < mVelocityTolerance;
+    }
+
+    public void enableContinuousInput(double minimumInput, double maximumInput) {
+        mIsWrapping = true;
+        setInputRange(minimumInput, maximumInput);
+    }
+
+    public void disableContinuousInput() {
+        mIsWrapping = false;
+    }
+
+    public void setIntegratorRange(double minimumIntegral, double maximumIntegral) {
+        mMinimumIntegral = minimumIntegral;
+        mMaximumIntegral = maximumIntegral;
+    }
+
+    public void setTolerance(double positionTolerance) {
+        setTolerance(positionTolerance, Double.POSITIVE_INFINITY);
+    }
+
+    public void setTolerance(double positionTolerance, double velocityTolerance) {
+        mPositionTolerance = positionTolerance;
+        mVelocityTolerance = velocityTolerance;
+    }
+
+    public double getPositionError() {
+        return getContinuousError(mPositionError);
+    }
+
+    public double getVelocityError() {
+        return mVelocityError;
+    }
+
+    public double calculate(double measurement, double setpoint) {
+        setSetpoint(setpoint);
+        return calculate(measurement);
+    }
+
+    public double calculate(double measurement) {
+        double currentTime = Timer.getFPGATimestamp();
+        double dt = currentTime - mPrevTimestamp;
+
+        mPrevError = mPositionError;
+        mPositionError = getContinuousError(mSetpoint - measurement);
+        mVelocityError = (mPositionError - mPrevError) / dt;
+
+        if (mKi != 0) {
+            mTotalError = Util.limit(mTotalError + mPositionError * dt, mMinimumIntegral / mKi,
+                    mMaximumIntegral / mKi);
+        }
+
+        mPrevTimestamp = currentTime;
+        return mKp * mPositionError + mKi * mTotalError + mKd * mVelocityError;
     }
 
     public void reset() {
-        resetErrorSum();
-        prevError = 0;
-        lastTime = Timer.getFPGATimestamp();
-        deltaTime = 20.0;
+        mPrevError = 0;
+        mTotalError = 0;
+        mPrevTimestamp = Timer.getFPGATimestamp();
     }
 
-
-    public double getError() { 
-        return desiredValue - sensorInput.getAsDouble();
-    }
-
-    public double getOutput() {
-        double pVal = 0;
-        double iVal = 0;
-        double dVal = 0;
-
-        double error = desiredValue - sensorInput.getAsDouble();
-
-        
-        double currentTime = Timer.getFPGATimestamp();
-        deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
-        
-
-       // deltaTime /= 20;
-
-        //Calculate p value
-        pVal = error * kP;
-
-        //Calculate i value
-        if(Math.abs(error) < Math.abs(iRange)) {
-            this.errorSum += error*deltaTime;
-        } else {
-            errorSum = 0;
+    protected double getContinuousError(double error) {
+        if (mIsWrapping && mInputRange > 0) {
+            error %= mInputRange;
+            if (Math.abs(error) > mInputRange / 2) {
+                if (error > 0) {
+                    return error - mInputRange;
+                } else {
+                    return error + mInputRange;
+                }
+            }
         }
-        iVal = errorSum * kI;
-
-        //Calculate d value
-        double derivative = (error - prevError) / deltaTime;
-        dVal = kD * derivative;
-
-        //overall pid output
-        double output  = pVal +iVal + dVal;
-
-        //limit value
-        output = Util.limit(output, minOutput, maxOutput);
-
-        prevError = error;
-
-        if(debug) {
-            SmartDashboard.putNumber("kp", kP);
-            SmartDashboard.putNumber("kI", kI);
-            SmartDashboard.putNumber("kD", kD);
-            SmartDashboard.putNumber("P Out", pVal);
-            SmartDashboard.putNumber("I Out", iVal);
-            SmartDashboard.putNumber("D Out", dVal);
-            SmartDashboard.putNumber("PID Output", output);
-            SmartDashboard.putNumber("Error", error);
-            SmartDashboard.putNumber("Error Sum", errorSum);
-        }
-
-        return output;
+        return error;
     }
 
+    private void setInputRange(double minimumInput, double maximumInput) {
+        mMinimumInput = minimumInput;
+        mMaximumInput = maximumInput;
+        mInputRange = maximumInput - minimumInput;
 
-    
+        if (mMaximumInput > mMinimumInput) {
+            mSetpoint = Util.limit(mSetpoint, mMinimumInput, mMaximumInput);
+        }
+    }
+
 }

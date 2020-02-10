@@ -17,7 +17,6 @@ import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.auto.modes.DoNothing;
 import frc.robot.auto.modes.TestPathingMode;
 import frc.robot.auto.modes.TrenchFullAuto;
-import frc.robot.auto.modes.tests.DriveConfiguration;
 
 public class ModeSelector {
 
@@ -35,7 +34,6 @@ public class ModeSelector {
     private enum TestModes {
         FULL,
         DRIVE,
-        DRIVE_CONFIGURATION,
         DRIVE_CHARACTERIZATION
     }
 
@@ -73,7 +71,6 @@ public class ModeSelector {
         //Test mode sendable chooser configuration
         mTestModeChooser = new SendableChooser<>();
         mTestModeChooser.setDefaultOption("All Systems Check", TestModes.FULL);
-        mTestModeChooser.addOption("Drive Configuration", TestModes.DRIVE_CONFIGURATION);
         mTestModeChooser.addOption("Drive Characterization", TestModes.DRIVE_CHARACTERIZATION);
         mTestModeChooser.addOption("Drive", TestModes.DRIVE);
 
@@ -122,8 +119,6 @@ public class ModeSelector {
         switch(mode) {
             case FULL:
                 //return 
-            case DRIVE_CONFIGURATION:
-                return Optional.of(new DriveConfiguration());
             case DRIVE_CHARACTERIZATION:
                 //return
             case DRIVE:

@@ -212,11 +212,6 @@ public class Shooter extends Subsystem {
 
 
     public synchronized void shootFromDistance(double distanceInFeet) {
-        if(distanceInFeet > Constants.kHoodEnableDistance) {
-            mHoodSolenoid.set(true);
-        } else {
-            mHoodSolenoid.set(false);
-        }
 
         //TODO: logic (function) for converting distances into desired velocities.
         //TODO: update over time, prevent oscillation from hold to hold when ready
