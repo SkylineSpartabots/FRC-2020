@@ -24,6 +24,7 @@ import frc.robot.auto.ModeExecutor;
 import frc.robot.auto.ModeSelector;
 import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.loops.Looper;
+import frc.robot.paths.PathGenerator;
 import frc.robot.subsystems.Climb;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Hopper;
@@ -61,6 +62,7 @@ public class Robot extends TimedRobot {
   private Limelight mLimelight = Limelight.getInstance();
 
 
+  private final PathGenerator mPathGenerator = PathGenerator.getInstance();
   private ModeSelector mModeSelector = new ModeSelector();
   private ModeExecutor mAutoModeExecutor;
   private ModeExecutor mTestModeExecutor;
@@ -87,6 +89,7 @@ public class Robot extends TimedRobot {
       mSubsystemManager.registerDisabledLoops(mDisabledLooper);
 
       mDrive.zeroSensors();
+      mPathGenerator.generatePaths();
       
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -206,7 +209,7 @@ public class Robot extends TimedRobot {
         mAutoModeExecutor.stop();
       }
       mLimelight.setLed(LedMode.OFF);
-      
+
       mEnabledLooper.start();
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);

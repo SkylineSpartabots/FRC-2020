@@ -50,8 +50,17 @@ public class Constants {
 	public static final double kTargetHeight = 98.5;
 
 	
+	//Spinner
+	public static final int kControlPanelProximityThreshold = 0;
+	public static final int kNeoPPR = 42;
+	public static final double kSpinnerWheelDiameterInches = 2.0;
+	public static final int kControlPanelDiameterInches = 32;
+	public static final double kSpinnerCountsPerInch = kNeoPPR / (Math.PI * kSpinnerWheelDiameterInches);
+	public static final double kCountsPerControlPanelRotation = kControlPanelDiameterInches * kSpinnerCountsPerInch;
 	
 	// Air Compressor
 	public static final double kCompressorShutOffCurrent = 0;
+
+	
 
 }

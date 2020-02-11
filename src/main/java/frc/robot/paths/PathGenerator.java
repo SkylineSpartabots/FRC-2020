@@ -88,13 +88,11 @@ public class PathGenerator {
 
     public class PathSet {
 
-        private final Trajectory startPositionOneToTrenchEnd;
-        private final Trajectory startPositionTwoToTrenchEnd;
-        
-        private final Trajectory startPositionThreeToOpponentBalls;
-        private final Trajectory opponentBallsToShootLocation;
-
-        private final Trajectory trenchEndToShootLocation;
+        public final Trajectory startPositionOneToTrenchEnd;
+        public final Trajectory startPositionTwoToTrenchEnd;
+        public final Trajectory startPositionThreeToOpponentBalls;
+        public final Trajectory opponentBallsToShootLocation;
+        public final Trajectory trenchEndToShootLocation;
 
 
         private PathSet() {

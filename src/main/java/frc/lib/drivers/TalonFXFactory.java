@@ -157,8 +157,14 @@ public class TalonFXFactory {
         PheonixUtil.checkError(falcon.configClosedloopRamp(config.CLOSED_LOOP_RAMP_RATE, kTimeoutMs), 
             name + " failed to set closed loop ramp rate on init", true);
         
-            PheonixUtil.checkError(falcon.configClosedloopRamp(config.CLOSED_LOOP_RAMP_RATE, kTimeoutMs), 
+        PheonixUtil.checkError(falcon.configClosedloopRamp(config.CLOSED_LOOP_RAMP_RATE, kTimeoutMs), 
             name + " failed to set open loop ramp rate on init", true);
+        
+        PheonixUtil.checkError(falcon.configForwardSoftLimitEnable(false, kTimeoutMs), 
+            name + " failed to disable fwd soft limit", true);
+        
+        PheonixUtil.checkError(falcon.configReverseSoftLimitEnable(false, kTimeoutMs), 
+            name + " failed to disable reverse soft limit", true);
         
         falcon.setInverted(config.INVERTED);
         falcon.setSensorPhase(config.SENSOR_PHASE);

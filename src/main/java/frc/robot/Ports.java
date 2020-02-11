@@ -37,4 +37,6 @@ public class Ports {
 	public static final int CANIFIER_ID = 0;
 	public static final int PCM_ID = 0;
 	public static final int PDP_ID = 0;
+	public static final int SPINNER_MOTOR_ID = 0;
+	public static final int SPINNER_SOLENOID_ID = 0;
 }

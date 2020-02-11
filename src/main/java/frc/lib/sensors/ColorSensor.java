@@ -14,9 +14,18 @@ import com.revrobotics.ColorSensorV3.RawColor;
 
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
+import frc.robot.Constants;
 
 
 public class ColorSensor {
+
+    private static ColorSensor mInstance = null;
+    public static ColorSensor getInstance() {
+        if(mInstance == null) {
+            mInstance = new ColorSensor();
+        }
+        return mInstance;
+    }
 
     private final Color kBlueTarget = ColorMatch.makeColor(0.109375, 0.427978515625, 0.462646484375);
     private final Color kGreenTarget = ColorMatch.makeColor(0.149169921875 , 0.597412109375 , 0.253662109375);
@@ -35,7 +44,7 @@ public class ColorSensor {
         UNKNOWN;
     }
 
-    public ColorSensor() {
+    private  ColorSensor() {
         mColorSensor = new ColorSensorV3(I2C.Port.kOnboard);
         
         mColorMatcher = new ColorMatch();
@@ -47,8 +56,12 @@ public class ColorSensor {
         
     }
 
-    public RawColor getRaw() {
-        return mColorSensor.getRawColor();
+    public int getProximity() {
+        return mColorSensor.getProximity();
+    }
+
+    public boolean hasReachedPanel() {
+        return getProximity() < Constants.kControlPanelProximityThreshold;
     }
 
     public Colors getColor() {

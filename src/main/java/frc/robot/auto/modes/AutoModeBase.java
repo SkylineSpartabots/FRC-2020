@@ -7,29 +7,18 @@
 
 package frc.robot.auto.modes;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.auto.ModeEndedException;
 import frc.robot.auto.actions.Action;
 import frc.robot.paths.PathGenerator;
 
-/**
- * Add your docs here.
- */
 public abstract class AutoModeBase {
     protected final double mUpdateRate = 1.0 / 50.0;
     protected boolean mActive = false;
     protected boolean mIsInterrupted = false;
 
     protected static PathGenerator.PathSet paths = PathGenerator.getInstance().getPathSet();
-
-    public List<Trajectory> getPaths() {
-        return new ArrayList<>();
-    }
 
     protected abstract void routine() throws ModeEndedException;
 
