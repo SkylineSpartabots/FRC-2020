@@ -61,6 +61,8 @@ public class Constants {
 	// Air Compressor
 	public static final double kCompressorShutOffCurrent = 0;
 
+	public static final double kRotationControlPercentOutput = 0;
+
 	
 
 }

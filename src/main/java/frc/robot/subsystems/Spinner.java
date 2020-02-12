@@ -8,15 +8,20 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.CANEncoder;
-import com.revrobotics.CANPIDController;
 import com.revrobotics.ControlType;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.drivers.LazySparkMax;
 import frc.lib.drivers.SparkMaxFactory;
 import frc.lib.drivers.SparkMaxUtil;
 import frc.lib.sensors.ColorSensor;
+import frc.lib.sensors.ColorSensor.Colors;
+import frc.lib.util.PIDController;
+import frc.lib.util.TelemetryUtil;
+import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
@@ -46,7 +51,9 @@ public class Spinner extends Subsystem {
     private final CANEncoder mEncoder;
 
     //controllers
-    private final CANPIDController mPidController;
+    private final PIDController mPidController;
+    private double mEncoderTarget;
+    private Colors mColorTarget = Colors.UNKNOWN;
 
     //control states
     private SpinnerControlState mCurrentState;
@@ -57,17 +64,10 @@ public class Spinner extends Subsystem {
     private void configureSparkForSpinner(LazySparkMax spark) {
         SparkMaxUtil.checkError(spark.enableVoltageCompensation(12.0), spark.getName() + " failed to set voltage comp.", true);
         SparkMaxUtil.checkError(spark.setSmartCurrentLimit(20), spark.getName() + " failed to set current limit", true);
-        SparkMaxUtil.checkError(spark.setOpenLoopRampRate(0.0), spark.getName() + " failed to set open loop ramp", true);
+        SparkMaxUtil.checkError(spark.setOpenLoopRampRate(0.5), spark.getName() + " failed to set open loop ramp", true);
         SparkMaxUtil.checkError(spark.setClosedLoopRampRate(0.4), spark.getName() + " failed to set closed loop ramp", true);
     }
 
-    private void setPIDConstants() {
-        SparkMaxUtil.checkError(mPidController.setP(0.0), mSpinnerMotor.getName() + " failed to set kP", true);
-        SparkMaxUtil.checkError(mPidController.setI(0.0), mSpinnerMotor.getName() + " failed to set kI", true);
-        SparkMaxUtil.checkError(mPidController.setD(0.0), mSpinnerMotor.getName() + " failed to set kD", true);
-        SparkMaxUtil.checkError(mPidController.setFF(0.0), mSpinnerMotor.getName() + " failed to set kF", true);
-        SparkMaxUtil.checkError(mPidController.setOutputRange(-1.0, 1.0), mSpinnerMotor.getName() + " failed to set PID output ranges", true);
-    }
 
     private Spinner() {
         mSpinnerMotor = SparkMaxFactory.createDefaultSparkMax("Spinner Motor", Ports.SPINNER_MOTOR_ID, false);
@@ -75,8 +75,9 @@ public class Spinner extends Subsystem {
 
         mEncoder = mSpinnerMotor.getEncoder();
 
-        mPidController = mSpinnerMotor.getPIDController();
-        setPIDConstants();
+        mPidController = new PIDController(0.0, 0.0, 0.0);
+        mPidController.setTolerance(25);
+        mPidController.setMinMaxOutput(-1.0, 1.0);
 
         mSpinnerSolenoid = new Solenoid(Ports.PCM_ID, Ports.SPINNER_SOLENOID_ID);
 
@@ -90,7 +91,7 @@ public class Spinner extends Subsystem {
 
             @Override
             public void onStart(double timestamp) {
-
+                setOff();
             }
 
             @Override
@@ -155,29 +156,79 @@ public class Spinner extends Subsystem {
         }
     }
 
+    //rotation control uses bang-bang for speed, overshoot does not matter due to 3-5 rotation window
     public synchronized void setRotationControl() {
         if(mCurrentState != SpinnerControlState.ROTATION_CONTROL) {
             mSpinnerSolenoid.set(true);
-            mSpinnerMotor.set(ControlType.kPosition, Constants.kCountsPerControlPanelRotation * 3.1);
+            mEncoderTarget = mEncoder.getPosition() + (Constants.kCountsPerControlPanelRotation * 3.1);
             setState(SpinnerControlState.ROTATION_CONTROL);
         }
-
+        mSpinnerMotor.set(ControlType.kDutyCycle, Constants.kRotationControlPercentOutput);
     }
 
     private void updateRotationControl() {
-
+        if(mCurrentState == SpinnerControlState.ROTATION_CONTROL) {
+            if(mEncoder.getPosition() > mEncoderTarget) {
+                setOff();
+            }
+        } else {
+            TelemetryUtil.print("Spinner is not in the rotation control state", PrintStyle.ERROR, true);
+        }
     }
 
     public synchronized void setPositionControl() {
-
+        if(mCurrentState != SpinnerControlState.POSITION_CONTROL) {
+            getPositionControlColor();
+            if(mColorTarget == Colors.UNKNOWN) {
+                setOff();
+                return;
+            }
+            mSpinnerSolenoid.set(true);
+            setState(SpinnerControlState.POSITION_CONTROL);
+        }
     }
 
     private void updatePositionControl() {
+        if(mCurrentState == SpinnerControlState.POSITION_CONTROL) {
+           
+            
 
+        } else {
+            TelemetryUtil.print("Spinner is not in the position control state", PrintStyle.ERROR, true);
+        }
+    }
+
+    public synchronized void getPositionControlColor() {
+        String gameData = DriverStation.getInstance().getGameSpecificMessage();
+        if(gameData.length() > 0) {
+            switch(gameData.charAt(0)) {
+                case 'B':
+                    mColorTarget = Colors.BLUE;
+                    break;
+                case 'G':
+                    mColorTarget = Colors.GREEN;
+                    break;
+                case 'R':
+                    mColorTarget = Colors.RED;
+                    break;
+                case 'Y':
+                    mColorTarget = Colors.YELLOW;
+                    break;
+                default:
+                    mColorTarget = Colors.UNKNOWN;
+                    TelemetryUtil.print("Corrupt game data recieved", PrintStyle.ERROR, true);
+            }
+        } else {
+            mColorTarget = Colors.UNKNOWN;
+        }
+
+        SmartDashboard.putString("Spinner Color:", mColorTarget.toString());
+        
     }
 
     @Override
     public void stop() {
+        setOff();
     }
 
     @Override

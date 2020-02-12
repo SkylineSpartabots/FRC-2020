@@ -14,6 +14,9 @@ public class PIDController {
     private double mMaximumInput;
     private double mMinimumInput;
 
+    private double mMaximumOutput = 1.0;
+    private double mMinimumOutput = -1.0;
+
     private double mInputRange;
 
     private boolean mIsWrapping;
@@ -65,6 +68,11 @@ public class PIDController {
 
     public double getD() {
         return mKd;
+    }
+
+    public void setMinMaxOutput(double min, double max) {
+        mMinimumOutput = min;
+        mMaximumOutput = max;
     }
 
     public void setSetpoint(double setpoint) {
@@ -133,7 +141,8 @@ public class PIDController {
         }
 
         mPrevTimestamp = currentTime;
-        return mKp * mPositionError + mKi * mTotalError + mKd * mVelocityError;
+        double output = mKp * mPositionError + mKi * mTotalError + mKd * mVelocityError;
+        return Util.limit(output, mMinimumOutput, mMaximumOutput);
     }
 
     public void reset() {
