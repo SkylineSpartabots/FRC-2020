@@ -25,9 +25,7 @@ import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 
-/**
- * Add your docs here.
- */
+
 public class Climb extends Subsystem {
 
     private static Climb mInstance = null;
@@ -116,14 +114,14 @@ public class Climb extends Subsystem {
                 if(mCurrentState == ClimbControlState.AUTO_WINCH_UP) {
                     double hoodMotorPosition = mHookSlideMotor.getSelectedSensorPosition(0);
                     if(hoodMotorPosition > Constants.kSlideDownEncoderTarget) {
-                        setHookSlideSpeed(-0.4);
+                        setHookSlideSpeed(mCurrentState.hookSlideSpeed);
                     } else {
                         setHookSlideSpeed(0.0);
                     }
 
                     if(Timer.getFPGATimestamp() - mStateChangeTimestamp > Constants.kSlideDownToWinchTransitionTime
                         && hoodMotorPosition > Constants.kHookSlideWaitHeightThreshold) {
-                        setWinchSpeed(0.95);
+                        setWinchSpeed(mCurrentState.winchSpeed);
                     } else {
                         setWinchSpeed(0.0);
                     }
@@ -144,7 +142,7 @@ public class Climb extends Subsystem {
         RAISE_HOOK(0.7, 0.0),
         LOWER_HOOK(-0.3, 0.0),
         WINCH_UP(0.0, 0.95),
-        AUTO_WINCH_UP(0.0, 0.0);
+        AUTO_WINCH_UP(-0.4, 0.95);
 
         private double hookSlideSpeed = 0.0;
         private double winchSpeed = 0.0;

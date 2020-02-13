@@ -34,6 +34,7 @@ import frc.robot.subsystems.Limelight;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spinner;
 import frc.robot.subsystems.SubsystemManager;
+import frc.robot.subsystems.Climb.ClimbControlState;
 import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.Limelight.LedMode;
 
@@ -55,7 +56,7 @@ public class Robot extends TimedRobot {
   private final Intake mIntake = Intake.getInstance();
   //private final Hopper mHopper = Hopper.getInstance();
   //private final Spinner mSpinner = Spinner.getInstance();
-  //private final Climb mClimb = Climb.getInstance();
+  private final Climb mClimb = Climb.getInstance();
   //private final LED mLED = LED.getInstance();
   //private final Shooter mShooter = Shooter.getInstance();
   private final Drive mDrive = Drive.getInstance();
@@ -322,14 +323,24 @@ public class Robot extends TimedRobot {
 
     
 
+
+
     /* Hopper Control:
         Open loop hopper control - left trigger
     */
+
 
     /* Climb Control:
         Deploy climb: back
         Retract climb: start
     */
+    if(mOperatorController.backButton.isBeingPressed()) {
+      mClimb.conformToState(ClimbControlState.RAISE_HOOK);
+    } else if(mOperatorController.startButton.isBeingPressed()) {
+      mClimb.conformToState(ClimbControlState.AUTO_WINCH_UP);
+    } else {
+      mClimb.conformToState(ClimbControlState.OFF);
+    }
 
 
     

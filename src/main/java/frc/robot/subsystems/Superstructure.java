@@ -12,9 +12,12 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import frc.lib.util.DriveSignal;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 import frc.robot.states.TimedLEDState;
+import frc.robot.subsystems.Hopper.HopperControlState;
+import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.requests.Request;
 import frc.robot.subsystems.requests.RequestList;
 
@@ -196,6 +199,38 @@ public class Superstructure extends Subsystem {
 
         });
     }
+
+
+    public void autoPositionControl() {
+        
+    }
+
+
+    public void autoRotationControl() {
+
+    }
+
+
+    public Request driveUntilControlPanelRequest() {
+        Request request = new Request(){
+        
+            @Override
+            public void act() {
+                mDrive.setOpenLoop(new DriveSignal(0.3, 0.3));
+            }
+
+            @Override
+            public boolean isFinished() {
+                return mSpinner.seesControlPanel();
+            }
+        };
+
+        request.withPrerequisite(mSpinner.deployedPrerequisite);
+
+        return request;
+    }
+
+
 
 
 

@@ -36,9 +36,9 @@ public class ColorSensor {
     private final ColorMatch mColorMatcher;
 
     public enum Colors {
-        BLUE, 
-        GREEN,
         RED,
+        GREEN,
+        BLUE,
         YELLOW,
         UNKNOWN;
     }

@@ -7,6 +7,8 @@
 
 package frc.robot.subsystems;
 
+import java.util.ArrayList;
+
 import com.revrobotics.CANEncoder;
 import com.revrobotics.ControlType;
 
@@ -15,6 +17,8 @@ import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.drivers.LazySparkMax;
+import frc.lib.drivers.MotorChecker;
+import frc.lib.drivers.SparkMaxChecker;
 import frc.lib.drivers.SparkMaxFactory;
 import frc.lib.drivers.SparkMaxUtil;
 import frc.lib.sensors.ColorSensor;
@@ -26,6 +30,7 @@ import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
+import frc.robot.subsystems.requests.Prerequisite;
 import frc.robot.subsystems.requests.Request;
 
 /*
@@ -54,7 +59,11 @@ public class Spinner extends Subsystem {
     //controllers
     private final PIDController mPidController;
     private double mEncoderTarget;
-    private Colors mColorTarget = Colors.UNKNOWN;
+    private Colors mPositionColorTarget = Colors.UNKNOWN;
+    private Colors mTurnToColorTarget = Colors.UNKNOWN;
+    private Colors mPositionControlStartColor = Colors.UNKNOWN;
+    private int mSpinDirectionMultiplier = 1;
+    private boolean hasReachedColorTransition = false;
 
     //control states
     private SpinnerControlState mCurrentState;
@@ -62,7 +71,8 @@ public class Spinner extends Subsystem {
     private double mStateChangeTimestamp = 0;
 
 
-    private void configureSparkForSpinner(LazySparkMax spark) {
+    private void configureSparkForSpinner(LazySparkMax spark, boolean inversion) {
+        spark.setInverted(inversion);
         SparkMaxUtil.checkError(spark.enableVoltageCompensation(12.0), spark.getName() + " failed to set voltage comp.", true);
         SparkMaxUtil.checkError(spark.setSmartCurrentLimit(20), spark.getName() + " failed to set current limit", true);
         SparkMaxUtil.checkError(spark.setOpenLoopRampRate(0.5), spark.getName() + " failed to set open loop ramp", true);
@@ -72,7 +82,7 @@ public class Spinner extends Subsystem {
 
     private Spinner() {
         mSpinnerMotor = SparkMaxFactory.createDefaultSparkMax("Spinner Motor", Ports.SPINNER_MOTOR_ID, false);
-        configureSparkForSpinner(mSpinnerMotor);
+        configureSparkForSpinner(mSpinnerMotor, false); //positive is spinning counter-clockwise
 
         mEncoder = mSpinnerMotor.getEncoder();
 
@@ -180,23 +190,50 @@ public class Spinner extends Subsystem {
     public synchronized void setPositionControl() {
         if(mCurrentState != SpinnerControlState.POSITION_CONTROL) {
             getPositionControlColor();
-            if(mColorTarget == Colors.UNKNOWN) {
+            if(mTurnToColorTarget == Colors.UNKNOWN || !seesControlPanel()) {
                 setOff();
                 return;
             }
             mSpinnerSolenoid.set(true);
+            mPositionControlStartColor = mColorSensor.getColor();
+            hasReachedColorTransition = false;
             setState(SpinnerControlState.POSITION_CONTROL);
         }
     }
 
     private void updatePositionControl() {
         if(mCurrentState == SpinnerControlState.POSITION_CONTROL) {
-           
-            
+
+            int currentColorOrdinal = mColorSensor.getColor().ordinal();
+
+            if(!hasReachedColorTransition) {
+                boolean isCurrentGreater = currentColorOrdinal > mPositionColorTarget.ordinal();
+                int maxDiff = Math.max(currentColorOrdinal, mPositionColorTarget.ordinal()) - 
+                    Math.min(currentColorOrdinal, mPositionColorTarget.ordinal());
+                int minDiff = Math.min(currentColorOrdinal, mPositionColorTarget.ordinal()) + 4 
+                    - Math.max(currentColorOrdinal, mPositionColorTarget.ordinal());
+                
+                mSpinDirectionMultiplier = isCurrentGreater && maxDiff > minDiff ? 1 : -1;
+
+                if(currentColorOrdinal != mPositionControlStartColor.ordinal()) {
+                    hasReachedColorTransition = true;
+                    double spinTarget = (Math.min(maxDiff, minDiff) + 0.5) * (Constants.kCountsPerControlPanelRotation / 8);
+                    mPidController.reset();
+                    mPidController.setSetpoint(mEncoder.getPosition() + (spinTarget * mSpinDirectionMultiplier));
+                } else {
+                    mSpinnerMotor.set(ControlType.kDutyCycle, 0.3 * mSpinDirectionMultiplier);
+                }
+            } else {
+                mSpinnerMotor.set(ControlType.kDutyCycle, mPidController.calculate(mEncoder.getPosition()));
+            }
 
         } else {
             TelemetryUtil.print("Spinner is not in the position control state", PrintStyle.ERROR, true);
         }
+    }
+
+    public synchronized boolean seesControlPanel() {
+        return mColorSensor.hasReachedPanel();
     }
 
     public synchronized void getPositionControlColor() {
@@ -204,49 +241,86 @@ public class Spinner extends Subsystem {
         if(gameData.length() > 0) {
             switch(gameData.charAt(0)) {
                 case 'B':
-                    mColorTarget = Colors.BLUE;
+                    mPositionColorTarget = Colors.BLUE;
+                    mTurnToColorTarget = Colors.RED;
                     break;
                 case 'G':
-                    mColorTarget = Colors.GREEN;
+                    mPositionColorTarget = Colors.GREEN;
+                    mTurnToColorTarget = Colors.YELLOW;
                     break;
                 case 'R':
-                    mColorTarget = Colors.RED;
+                    mPositionColorTarget = Colors.RED;
+                    mTurnToColorTarget = Colors.BLUE;
                     break;
                 case 'Y':
-                    mColorTarget = Colors.YELLOW;
+                    mPositionColorTarget = Colors.YELLOW;
+                    mTurnToColorTarget = Colors.GREEN;
                     break;
                 default:
-                    mColorTarget = Colors.UNKNOWN;
+                    mPositionColorTarget = Colors.UNKNOWN;
                     TelemetryUtil.print("Corrupt game data recieved", PrintStyle.ERROR, true);
             }
         } else {
-            mColorTarget = Colors.UNKNOWN;
+            mPositionColorTarget = Colors.UNKNOWN;
+            
+            TelemetryUtil.print("NO GAME DATA RECIEVED", PrintStyle.ERROR, true);
         }
 
-        SmartDashboard.putString("Spinner Color:", mColorTarget.toString());
-        
+        SmartDashboard.putString("Spinner Color:", mPositionColorTarget.toString());
     }
 
 
-    public Request rotationControlRequest() {
-        return new Request(){
-        
+    public Request rotationControlRequest() {  
+        Request request = new Request(){
             @Override
             public void act() {
                 setRotationControl();
             }
+
+            @Override
+            public boolean isFinished() {
+                return !allowed();
+            }
         };
+
+        request.withPrerequisite(canSpinPrerequisite);
+
+        return request;
     }
 
     public Request positionControlRequest() {
-        return new Request(){
+        Request request = new Request(){
         
             @Override
             public void act() {
                 setPositionControl();
             }
+
+            @Override
+            public boolean isFinished() {
+                return !allowed();
+            }
         };
+
+        request.withPrerequisite(canSpinPrerequisite);
+       
+       return request;
     }
+
+    public Prerequisite deployedPrerequisite = new Prerequisite(){
+        @Override
+        public boolean met() {
+            return mSpinnerSolenoid.get();
+        }
+    };
+
+    public Prerequisite canSpinPrerequisite = new Prerequisite(){
+        @Override
+        public boolean met() {
+            return mSpinnerSolenoid.get() && mColorSensor.hasReachedPanel();
+        }
+    };
+
 
     @Override
     public void stop() {
@@ -261,6 +335,8 @@ public class Spinner extends Subsystem {
     @Override
     public void outputTelemetry() {
         if(debug) {
+            
+
 
         }
     }

@@ -40,6 +40,7 @@ import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
+import frc.robot.subsystems.requests.Request;
 
 public class Drive extends Subsystem {
 
@@ -618,6 +619,24 @@ public class Drive extends Subsystem {
         SmartDashboard.putNumber("Left Position Meters", getLeftPosition());
         SmartDashboard.putNumber("Right Position Meters", getRightPosition());
         SmartDashboard.putNumber("NavX Heading", mNavx.getHeading()); 
+    }
+
+
+    public Request timeDriveRequest(DriveSignal driveSignal, double time) {
+        return new Request() {
+            double startTime = 0;
+
+            @Override
+            public void act() {
+                startTime = Timer.getFPGATimestamp();
+                setOpenLoop(driveSignal);
+            }
+
+            @Override
+            public boolean isFinished() {
+                return (Timer.getFPGATimestamp() - startTime) >= time;
+            }
+        };
     }
 
     
