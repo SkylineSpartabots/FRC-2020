@@ -238,6 +238,8 @@ public class Spinner extends Subsystem {
 
     @Override
     public void outputTelemetry() {
-
+        if(debug) {
+            
+        }
     }
 }

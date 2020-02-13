@@ -21,14 +21,13 @@ import frc.lib.drivers.PheonixUtil;
 import frc.lib.drivers.TalonSRXChecker;
 import frc.lib.drivers.TalonSRXFactory;
 import frc.lib.drivers.TalonSRXUtil;
+import frc.lib.util.Util;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 
-/**
- * TODO: Need to add ball detection logic. Sensor array or limelight in drivetrain
- */
+
 public class Intake extends Subsystem {
     private static Intake mInstance = null;
     public static Intake getInstance() {
@@ -49,6 +48,9 @@ public class Intake extends Subsystem {
     private IntakeControlState mCurrentState = IntakeControlState.OFF;
     private boolean mStateChanged = false;
     private double mStateChangeTimestamp = 0;
+
+    //external subsystem influence
+    private final Drive mDrive = Drive.getInstance();
 
 
     private void configureIntakeMotor(LazyTalonSRX talon) {
@@ -85,7 +87,11 @@ public class Intake extends Subsystem {
 
             @Override
             public void onLoop(double timestamp) {
-
+                if(mCurrentState == IntakeControlState.STORE) {
+                    double driveVelocity = mDrive.getAverageDriveVelocityMagnitude();
+                    setInnerIntakeSpeed(Util.limit(driveVelocity * 0.01, mCurrentState.innerIntakeSpeed));
+                    setOuterIntakeSpeed(Util.limit(driveVelocity * -0.01, mCurrentState.outerIntakeSpeed));
+                }
             }
 
             @Override
@@ -101,7 +107,7 @@ public class Intake extends Subsystem {
     public enum IntakeControlState {
         OFF(0.0, 0.0, false),
         IDLE_WHILE_DEPLOYED(0.0, 0.0, true),
-        STORE(0.3, -0.6, true),
+        STORE(0.5, -0.7, true), //values for "store" are the proportions that drive velocity will be multiplied by
         INTAKE(0.7, 0.7, true),
         OUTAKE(-0.5, -0.5, true);
 
@@ -144,8 +150,10 @@ public class Intake extends Subsystem {
 
     public synchronized void conformToState(IntakeControlState desiredState) {
         setState(desiredState);
-        setInnerIntakeSpeed(desiredState.innerIntakeSpeed);
-        setOuterIntakeSpeed(desiredState.outerIntakeSpeed);
+        if(desiredState != IntakeControlState.STORE) {
+            setInnerIntakeSpeed(desiredState.innerIntakeSpeed);
+            setOuterIntakeSpeed(desiredState.outerIntakeSpeed);
+        }
         setDeployState(desiredState.deployIntake);
     }
 

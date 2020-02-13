@@ -40,7 +40,7 @@ public class Hopper extends Subsystem {
     private final boolean debug = false;
 
     //hardware
-    private final LazyTalonSRX mIndexMotor, mLeftBelt,  mRightBelt;
+    private final LazyTalonSRX mIndexMotor, mLeftBelt, mRightBelt;
 
 
     //control states

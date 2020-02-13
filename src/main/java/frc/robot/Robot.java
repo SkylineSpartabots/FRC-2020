@@ -34,6 +34,7 @@ import frc.robot.subsystems.Limelight;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spinner;
 import frc.robot.subsystems.SubsystemManager;
+import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.Limelight.LedMode;
 
 
@@ -51,7 +52,7 @@ public class Robot extends TimedRobot {
   //Subsystems
   private final SubsystemManager mSubsystemManager = SubsystemManager.getInstance();
 
-  //private final Intake mIntake = Intake.getInstance();
+  private final Intake mIntake = Intake.getInstance();
   //private final Hopper mHopper = Hopper.getInstance();
   //private final Spinner mSpinner = Spinner.getInstance();
   //private final Climb mClimb = Climb.getInstance();
@@ -223,6 +224,7 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     try {
       mDriveController.update();
+      mOperatorController.update();
 
       driverControl();
       
@@ -265,25 +267,73 @@ public class Robot extends TimedRobot {
     }
   }
 
-  boolean visionTrackEnabled = false;
+  
+
+
+
+  private boolean deployIntake = false;
 
   public void driverControl() {
 
-    mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
-      
-    /*if(mDriveController.bButton.isBeingPressed()) {
-      visionTrackEnabled = false;
-      mDrive.setTurnPIDTarget(Rotation2d.fromDegrees(20));
+
+    /* Drive Controls:
+        Curvature Drive: Left joy y, right joy x
+        Quick-spin Override: Back
+    */
+
+    mDrive.setCurvatureDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight), mDriveController.backButton.isBeingPressed());
+    
+
+   /* Intake Controls:
+        Intake On - Left Bumper
+        Retract Intake - Y
+    */
+
+    if(mOperatorController.yButton.wasActivated()) {
+      deployIntake = false;
     }
 
-    if(mDriveController.aButton.isBeingPressed()) {
-      visionTrackEnabled = true;
+    if(mOperatorController.leftBumper.isBeingPressed()) {
+      mIntake.conformToState(IntakeControlState.INTAKE);
+      deployIntake = true;
+    } else {
+      if(deployIntake) {
+        mIntake.conformToState(IntakeControlState.STORE);
+      } else {
+        mIntake.conformToState(IntakeControlState.OFF);
+      }
     }
+   
+   
+    /* Shooter controls:
+        Start shooter ramp - Left paddle
+        Start and continue auto shooter sequence - B
+        Auto-align to shooter target - right bumper
+        Open loop shooter control - Right trigger
+        Feign Ball - x (optional)
+    */
 
-    if(visionTrackEnabled && mLimelight.seesTarget()) {
-      mDrive.setTurnPIDTarget(Rotation2d.fromDegrees(mDrive.getHeading().getDegrees() + mLimelight.getXOffset()));
-    }*/
+    /* Spinner controls:
+        Start rotation control - Dpad up
+        Start position control - Dpad down
+        Retract spinner - Left d pad
+        Open loop on spinner - right joy x
+    */
 
+    
+
+    /* Hopper Control:
+        Open loop hopper control - left trigger
+    */
+
+    /* Climb Control:
+        Deploy climb: back
+        Retract climb: start
+    */
+
+
+    
+    
   
   }
 

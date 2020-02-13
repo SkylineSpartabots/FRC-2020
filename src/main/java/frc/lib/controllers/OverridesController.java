@@ -31,6 +31,7 @@ public class OverridesController {
     private final int DRIVE_ENCODER = 4; //arduino port: 2
     private final int COLOR_SENSOR = 5; //arduino port: 10
     private final int SPINNER_ENCODER = 6; //arduino port: 11
+    private final int AIR_COMPRESSOR = 7;
 
 
     private OverridesController() {
