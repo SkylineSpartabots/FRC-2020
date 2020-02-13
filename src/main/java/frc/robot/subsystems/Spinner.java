@@ -26,6 +26,7 @@ import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
+import frc.robot.subsystems.requests.Request;
 
 /*
  * Add your docs here.
@@ -132,7 +133,7 @@ public class Spinner extends Subsystem {
         return mCurrentState;
     }
 
-    public synchronized void setState(SpinnerControlState newState) {
+    private void setState(SpinnerControlState newState) {
         if(newState != mCurrentState) {
             mStateChanged = true;
             mStateChangeTimestamp = Timer.getFPGATimestamp();
@@ -226,6 +227,27 @@ public class Spinner extends Subsystem {
         
     }
 
+
+    public Request rotationControlRequest() {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                setRotationControl();
+            }
+        };
+    }
+
+    public Request positionControlRequest() {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                setPositionControl();
+            }
+        };
+    }
+
     @Override
     public void stop() {
         setOff();
@@ -239,7 +261,7 @@ public class Spinner extends Subsystem {
     @Override
     public void outputTelemetry() {
         if(debug) {
-            
+
         }
     }
 }

@@ -26,6 +26,7 @@ import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
+import frc.robot.subsystems.requests.Request;
 
 
 public class Intake extends Subsystem {
@@ -107,7 +108,7 @@ public class Intake extends Subsystem {
     public enum IntakeControlState {
         OFF(0.0, 0.0, false),
         IDLE_WHILE_DEPLOYED(0.0, 0.0, true),
-        STORE(0.5, -0.7, true), //values for "store" are the proportions that drive velocity will be multiplied by
+        STORE(0.5, -0.7, true), //values for "store" are the max limits for drive velocity proportion logic
         INTAKE(0.7, 0.7, true),
         OUTAKE(-0.5, -0.5, true);
 
@@ -207,5 +208,17 @@ public class Intake extends Subsystem {
             SmartDashboard.putNumber("Outer Intake Output", mOuterIntakeMotor.getLastSet());
         }
     }
+
+
+    public Request stateRequest(IntakeControlState desiredState) {
+        return new Request(){
+            @Override
+            public void act() {
+                conformToState(desiredState);
+            }
+        };
+    }
+
+
 
 }

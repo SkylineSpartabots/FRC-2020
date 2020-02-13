@@ -58,10 +58,17 @@ public class Constants {
 	public static final double kSpinnerCountsPerInch = kNeoPPR / (Math.PI * kSpinnerWheelDiameterInches);
 	public static final double kCountsPerControlPanelRotation = kControlPanelDiameterInches * kSpinnerCountsPerInch;
 	
+	//Climb
+	public static final double kSlideDownToWinchTransitionTime = 0.1;
+	public static final double kSlideDownEncoderTarget = 100;
+	public static final double kHookSlideWaitHeightThreshold = 900;
+	
 	// Air Compressor
 	public static final double kCompressorShutOffCurrent = 0;
 
 	public static final double kRotationControlPercentOutput = 0;
+
+	
 
 	
 

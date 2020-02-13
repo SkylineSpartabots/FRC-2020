@@ -17,7 +17,6 @@ import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import com.ctre.phoenix.motorcontrol.VelocityMeasPeriod;
 
-import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.drivers.LazyTalonFX;
 import frc.lib.drivers.MotorChecker;
@@ -29,6 +28,7 @@ import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
+import frc.robot.subsystems.requests.Request;
 
 
 public class Shooter extends Subsystem {
@@ -47,7 +47,6 @@ public class Shooter extends Subsystem {
 
     //hardware
     private final LazyTalonFX mMasterShooter, mSlaveShooter;
-    private final Solenoid mHoodSolenoid;
 
 
     //controllers
@@ -149,7 +148,6 @@ public class Shooter extends Subsystem {
 
         setControllerConstants();
 
-        mHoodSolenoid = new Solenoid(Ports.SHOOTER_HOOD_SOLENOID_PORT);
     }
 
     /**
@@ -401,8 +399,19 @@ public class Shooter extends Subsystem {
     }
 
 
-    public synchronized void setHoodEnabled(boolean isEnabled) {
-        mHoodSolenoid.set(isEnabled);
+    public Request setVelocityAndWaitRequest(double velocity) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                setHoldWhenReady(velocity);
+            }
+
+            @Override
+            public boolean isFinished() {
+                return isOnTarget();
+            }
+        };
     }
 
     /**
@@ -419,7 +428,6 @@ public class Shooter extends Subsystem {
      */
     @Override
     public boolean checkSystem() {
-        mHoodSolenoid.set(true);
 
         boolean check = TalonFXChecker.checkMotors(this,
             new ArrayList<MotorChecker.MotorConfig<LazyTalonFX>>() {    
@@ -442,8 +450,6 @@ public class Shooter extends Subsystem {
                 }
             });
 
-        mHoodSolenoid.set(false);
-
         return check;
     }
 
@@ -454,8 +460,6 @@ public class Shooter extends Subsystem {
 
         if(debug) {
             SmartDashboard.putString("Shooter state", mControlState.toString());
-            
-            SmartDashboard.putBoolean("Hood Solenoid", mHoodSolenoid.get());
 
             SmartDashboard.putNumber("Shooter Velocity", mPeriodicIO.velocity_in_ticks_per_100ms);
             SmartDashboard.putNumber("Shooter Setpoint RPM", mPeriodicIO.setpoint_rpm);

@@ -23,6 +23,7 @@ import frc.lib.drivers.TalonSRXFactory;
 import frc.lib.drivers.TalonSRXUtil;
 import frc.robot.Constants;
 import frc.robot.Ports;
+import frc.robot.subsystems.requests.Request;
 
 
 public class Hopper extends Subsystem {
@@ -133,6 +134,17 @@ public class Hopper extends Subsystem {
         setState(desiredState);
         setBeltSpeed(desiredState.leftBeltSpeed, desiredState.rightBeltSpeed);
         setIndexSpeed(desiredState.indexSpeed);
+    }
+
+
+    public Request stateRequest(HopperControlState desiredState) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                conformToState(desiredState);
+            }
+        };
     }
 
     
