@@ -269,6 +269,16 @@ public class Spinner extends Subsystem {
         SmartDashboard.putString("Spinner Color:", mPositionColorTarget.toString());
     }
 
+    
+    public Request openLopoRequest(double percentOutput) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                setOpenLoop(percentOutput);
+            }
+        };
+    }
 
     public Request rotationControlRequest() {  
         Request request = new Request(){

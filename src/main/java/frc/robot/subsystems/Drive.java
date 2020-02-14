@@ -59,6 +59,7 @@ public class Drive extends Subsystem {
     // hardware
     private final LazyTalonFX mLeftMaster, mLeftSlave, mRightMaster, mRightSlave;
     private final Navx mNavx;
+    private final Limelight mLimelight = Limelight.getInstance();
 
     // hardware states
     private boolean mIsBrakeMode;
@@ -68,7 +69,8 @@ public class Drive extends Subsystem {
 
     // controllers
     private final RamseteController mRamseteController;
-    private final PIDController mLeftPidController, mRightPidController;
+    private final PIDController mLeftPidController, mRightPidController, mTurnPidController, mAlignPidController;
+    private boolean mIsAlignToTarget = false;
     private final SimpleMotorFeedforward mFeedforwardController;
     private final DifferentialDriveKinematics mDriveKinematics;
     private DifferentialDriveWheelSpeeds mPrevWheelSpeeds;
@@ -161,6 +163,13 @@ public class Drive extends Subsystem {
         mLeftPidController = new PIDController(0.0, 0.0, 0.0);
         mRightPidController = new PIDController(0.0, 0.0, 0.0);
 
+        mTurnPidController = new PIDController(0.01, 0.0, 0.0);
+        mTurnPidController.enableContinuousInput(-180, 180);
+        mTurnPidController.setTolerance(1.0, 1.5);
+
+        mAlignPidController = new PIDController(0.01, 0.0, 0.0);
+        mAlignPidController.enableContinuousInput(-180, 180);
+        mAlignPidController.setTolerance(1.0, 1.5);
 
         mIsBrakeMode = false;
         setBrakeMode(true);
@@ -255,6 +264,10 @@ public class Drive extends Subsystem {
                         }
                         break;
                     case TURN_PID:
+                        updateTurnPid();
+                        break;
+                    case ALIGN_TO_TARGET:
+                        updateAlignController();
                         break;
                     default:
                         TelemetryUtil.print("Drive in an unexpected control state", PrintStyle.ERROR, false);
@@ -452,7 +465,7 @@ public class Drive extends Subsystem {
      * @param feedforward the drive signal to set motor feedforward
      */
     public synchronized void setVelocity(DriveSignal signal) {
-        if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {
+        if (mDriveControlState == DriveControlState.OPEN_LOOP) {
             setBrakeMode(true);
             setStatorCurrentLimit(35);
             PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
@@ -477,7 +490,15 @@ public class Drive extends Subsystem {
 
             mTimeSincePathStart = Timer.getFPGATimestamp();
 
-            mDriveControlState = DriveControlState.PATH_FOLLOWING;
+            if(mDriveControlState != DriveControlState.PATH_FOLLOWING) {
+                setBrakeMode(true);
+                setStatorCurrentLimit(35);
+                PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                    mLeftMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+                PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                    mRightMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+                mDriveControlState = DriveControlState.PATH_FOLLOWING;
+            }
         }
     }
 
@@ -518,6 +539,76 @@ public class Drive extends Subsystem {
         }
     
     }
+
+
+    public synchronized void turnToHeading(double desiredHeading, boolean reset) {
+        if(mDriveControlState != DriveControlState.TURN_PID) {
+            setBrakeMode(true);
+            setStatorCurrentLimit(35);
+            PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mLeftMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+            PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mRightMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+            mDriveControlState = DriveControlState.TURN_PID;
+        }
+
+        if(reset) {
+            mTurnPidController.reset();
+        }
+        
+        mTurnPidController.setSetpoint(desiredHeading);
+    }
+
+
+    private void updateTurnPid() {
+        if(mDriveControlState == DriveControlState.TURN_PID) {
+            double output = mTurnPidController.calculate(getHeading().getDegrees());
+            setVelocity(new DriveSignal(output, -output));
+        } else {
+            TelemetryUtil.print("Robot is not in a turn pid state", PrintStyle.ERROR, true);
+        }
+    }
+
+    public synchronized boolean hasReachedHeadingTarget() {
+        if(mDriveControlState == DriveControlState.TURN_PID) {
+            return mTurnPidController.atSetpoint();
+        }
+        return false;
+    }
+
+
+    public synchronized void setAlignToTarget() {
+        if(mDriveControlState != DriveControlState.ALIGN_TO_TARGET) {
+            setBrakeMode(true);
+            setStatorCurrentLimit(35);
+            PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mLeftMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+            PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
+                 mRightMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+            mIsAlignToTarget = false;
+            mAlignPidController.reset();
+            mDriveControlState = DriveControlState.ALIGN_TO_TARGET;
+        }
+    }
+
+    private void updateAlignController() {
+        if(mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
+            if(mLimelight.seesTarget()) {
+                double output = mAlignPidController.calculate(getHeading().getDegrees(), 
+                    getHeading().getDegrees() + mLimelight.getXOffset());
+                setVelocity(new DriveSignal(output, -output));
+                mIsAlignToTarget = mAlignPidController.atSetpoint();
+            } else {
+                double output = mAlignPidController.calculate(getHeading().getDegrees(), 0.0);
+                setVelocity(new DriveSignal(output, -output));
+                mIsAlignToTarget = false;
+            }
+        } else {
+            TelemetryUtil.print("Robot is not in a target aligning state", PrintStyle.ERROR, true);
+        }
+    }
+
+    
 
     /**
      * Gets the heading of the robot (using navx)
@@ -585,7 +676,7 @@ public class Drive extends Subsystem {
      * enum to keep track of drive control status
      */
     private enum DriveControlState {
-        OPEN_LOOP, PATH_FOLLOWING, TURN_PID;
+        OPEN_LOOP, PATH_FOLLOWING, TURN_PID, ALIGN_TO_TARGET;
     }
 
     /**
@@ -622,6 +713,16 @@ public class Drive extends Subsystem {
     }
 
 
+    public Request openLoopRequest(DriveSignal driveSignal) {
+        return new Request() {
+
+            @Override
+            public void act() {
+                setOpenLoop(driveSignal);
+            }
+        };
+    }
+
     public Request timeDriveRequest(DriveSignal driveSignal, double time) {
         return new Request() {
             double startTime = 0;
@@ -635,6 +736,23 @@ public class Drive extends Subsystem {
             @Override
             public boolean isFinished() {
                 return (Timer.getFPGATimestamp() - startTime) >= time;
+            }
+        };
+    }
+
+    public Request turnRequest(double heading, double timeout) {
+        return new Request(){
+            double startTime = 0;
+
+            @Override
+            public void act() {
+                startTime = Timer.getFPGATimestamp();
+                turnToHeading(heading, true);
+            }
+
+            @Override
+            public boolean isFinished() {
+                return (Timer.getFPGATimestamp() - startTime) >= timeout || hasReachedHeadingTarget();
             }
         };
     }

@@ -158,6 +158,14 @@ public class Intake extends Subsystem {
         setDeployState(desiredState.deployIntake);
     }
 
+    public Request stateRequest(IntakeControlState desiredState) {
+        return new Request(){
+            @Override
+            public void act() {
+                conformToState(desiredState);
+            }
+        };
+    }
 
     @Override
     public void stop() {
@@ -210,14 +218,7 @@ public class Intake extends Subsystem {
     }
 
 
-    public Request stateRequest(IntakeControlState desiredState) {
-        return new Request(){
-            @Override
-            public void act() {
-                conformToState(desiredState);
-            }
-        };
-    }
+    
 
 
 

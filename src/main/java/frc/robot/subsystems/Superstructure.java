@@ -15,7 +15,7 @@ import java.util.List;
 import frc.lib.util.DriveSignal;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
-import frc.robot.states.TimedLEDState;
+import frc.robot.subsystems.Climb.ClimbControlState;
 import frc.robot.subsystems.Hopper.HopperControlState;
 import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.requests.Request;
@@ -40,6 +40,7 @@ public class Superstructure extends Subsystem {
     private Spinner mSpinner = Spinner.getInstance();
     private Hopper mHopper = Hopper.getInstance();
     private Intake mIntake = Intake.getInstance();
+    private Climb mClimb = Climb.getInstance();
 
     private RequestList activeRequests;
     private ArrayList<RequestList> queuedRequests;
@@ -202,12 +203,24 @@ public class Superstructure extends Subsystem {
 
 
     public void autoPositionControl() {
-        
+        RequestList state = new RequestList(Arrays.asList(mDrive.turnRequest(180, 2), 
+            mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF),
+            mSpinner.openLopoRequest(0.0), mClimb.stateRequest(ClimbControlState.OFF)), true);
+        RequestList queue = new RequestList(Arrays.asList(driveUntilControlPanelRequest(), mDrive.openLoopRequest(new DriveSignal(0, 0)),
+            mSpinner.positionControlRequest()), false);
+        request(state);
+        replaceQueue(queue);
     }
 
 
     public void autoRotationControl() {
-
+        RequestList state = new RequestList(Arrays.asList(mDrive.turnRequest(180, 2), 
+            mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF),
+            mSpinner.openLopoRequest(0.0), mClimb.stateRequest(ClimbControlState.OFF)), true);
+        RequestList queue = new RequestList(Arrays.asList(driveUntilControlPanelRequest(), mDrive.openLoopRequest(new DriveSignal(0, 0)),
+            mSpinner.rotationControlRequest()), false);
+        request(state);
+        replaceQueue(queue);
     }
 
 

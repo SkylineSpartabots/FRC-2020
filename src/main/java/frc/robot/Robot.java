@@ -34,6 +34,7 @@ import frc.robot.subsystems.Limelight;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Spinner;
 import frc.robot.subsystems.SubsystemManager;
+import frc.robot.subsystems.Superstructure;
 import frc.robot.subsystems.Climb.ClimbControlState;
 import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.Limelight.LedMode;
@@ -60,6 +61,7 @@ public class Robot extends TimedRobot {
   //private final LED mLED = LED.getInstance();
   //private final Shooter mShooter = Shooter.getInstance();
   private final Drive mDrive = Drive.getInstance();
+  private final Superstructure mSuperstructure = Superstructure.getInstance();
 
   private Limelight mLimelight = Limelight.getInstance();
 
@@ -273,8 +275,41 @@ public class Robot extends TimedRobot {
 
 
   private boolean deployIntake = false;
+  private boolean automatedControlEnabled = false;
 
   public void driverControl() {
+
+
+    /* Complete automation controls:
+        Start rotation control - Dpad up
+        Start position control - Dpad down
+        Start auto shoot sequence - B
+    */
+
+    if(mOperatorController.bButton.isBeingPressed()) {
+      if(!automatedControlEnabled) {
+        //completely automated shoot control superstructure command
+        automatedControlEnabled = true;
+      }
+      return;
+    }
+
+    if(mOperatorController.dpadUp.isBeingPressed()) {
+      if(!automatedControlEnabled) {
+        mSuperstructure.autoRotationControl();
+        automatedControlEnabled = true;
+      }
+      return;
+    }
+
+    if(mOperatorController.dpadDown.isBeingPressed()) {
+      if(!automatedControlEnabled) {
+        mSuperstructure.autoPositionControl();
+        automatedControlEnabled = true;
+      }
+      return;
+    }
+
 
 
     /* Drive Controls:
@@ -321,7 +356,7 @@ public class Robot extends TimedRobot {
         Open loop on spinner - right joy x
     */
 
-    
+
 
 
 

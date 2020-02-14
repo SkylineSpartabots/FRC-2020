@@ -24,6 +24,7 @@ import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
+import frc.robot.subsystems.requests.Request;
 
 
 public class Climb extends Subsystem {
@@ -179,6 +180,16 @@ public class Climb extends Subsystem {
             setHookSlideSpeed(desiredState.hookSlideSpeed);
             setWinchSpeed(desiredState.winchSpeed);
         }
+    }
+
+    public Request stateRequest(ClimbControlState desiredState) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                conformToState(desiredState);
+            }
+        };
     }
 
 
