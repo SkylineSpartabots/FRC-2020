@@ -420,10 +420,10 @@ public class Drive extends Subsystem {
      * the turning algorithm is the same as the one used in DifferentialDrive.
      * @param throttle forward amount
      * @param turn turning amount
-     */
+     */ 
     public synchronized void setArcadeDrive(double throttle, double turn) {
         throttle = Util.limit(throttle, -1, 1);
-        throttle = Util.deadBand(throttle, 0.04);
+        throttle = Util.deadBand(throttle, 0.04); 
 
         turn = Util.limit(turn, -1, 1);
         turn = Util.deadBand(turn, 0.04);
