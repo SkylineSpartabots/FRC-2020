@@ -22,6 +22,7 @@ public class TelemetryUtil {
         WARNING("<<< WARNING: " , " >>>"),
         ERROR("!!! ERROR: ", " !!!"),
         NONE("", ""),
+        LOGGER_PRO("~~~ LoggerPro: " , " ~~~"),
         SENSOR_VALUE("||| Sensor: ", " |||");
 
         public final String startKey;
@@ -58,6 +59,5 @@ public class TelemetryUtil {
         }
 
         System.out.println(startKey + message + endKey); //YOU KNOW UR BOI CAN System.out.println! 
-        //if u can read this then Kush is ur dad
     }
 }
