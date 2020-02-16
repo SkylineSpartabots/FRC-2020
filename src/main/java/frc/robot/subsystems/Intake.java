@@ -10,6 +10,7 @@ package frc.robot.subsystems;
 import java.util.ArrayList;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 
 import edu.wpi.first.wpilibj.Solenoid;
@@ -21,7 +22,9 @@ import frc.lib.drivers.PheonixUtil;
 import frc.lib.drivers.TalonSRXChecker;
 import frc.lib.drivers.TalonSRXFactory;
 import frc.lib.drivers.TalonSRXUtil;
+import frc.lib.util.TelemetryUtil;
 import frc.lib.util.Util;
+import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
@@ -54,7 +57,8 @@ public class Intake extends Subsystem {
     private final Drive mDrive = Drive.getInstance();
 
 
-    private void configureIntakeMotor(LazyTalonSRX talon) {
+    private void configureIntakeMotor(LazyTalonSRX talon, InvertType inversion) {
+        talon.setInverted(inversion);
         PheonixUtil.checkError(talon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
             talon.getName() + " failed to set voltage compensation", true);
         PheonixUtil.checkError(talon.configVoltageMeasurementFilter(32, Constants.kTimeOutMs),
@@ -70,10 +74,10 @@ public class Intake extends Subsystem {
         mIntakeSolenoid = new Solenoid(Ports.PCM_ID, Ports.INTAKE_SOLENOID_PORT);
         
         mInnerIntakeMotor = TalonSRXFactory.createDefaultTalon("Inner Intake Motor", Ports.INTAKE_INNER_MOTOR_ID);
-        configureIntakeMotor(mInnerIntakeMotor);
+        configureIntakeMotor(mInnerIntakeMotor, InvertType.None);
 
         mOuterIntakeMotor = TalonSRXFactory.createDefaultTalon("Outer Intake Motor", Ports.INTAKE_OUTER_MOTOR_ID);
-        configureIntakeMotor(mOuterIntakeMotor);      
+        configureIntakeMotor(mOuterIntakeMotor, InvertType.InvertMotorOutput);      
     }
 
 
@@ -90,8 +94,8 @@ public class Intake extends Subsystem {
             public void onLoop(double timestamp) {
                 if(mCurrentState == IntakeControlState.STORE) {
                     double driveVelocity = mDrive.getAverageDriveVelocityMagnitude();
-                    setInnerIntakeSpeed(Util.limit(driveVelocity * 0.01, mCurrentState.innerIntakeSpeed));
-                    setOuterIntakeSpeed(Util.limit(driveVelocity * -0.01, mCurrentState.outerIntakeSpeed));
+                    setInnerIntakeSpeed(0.0);
+                    setOuterIntakeSpeed(-Util.limit(driveVelocity * 0.4, mCurrentState.outerIntakeSpeed));
                 }
             }
 
@@ -108,8 +112,9 @@ public class Intake extends Subsystem {
     public enum IntakeControlState {
         OFF(0.0, 0.0, false),
         IDLE_WHILE_DEPLOYED(0.0, 0.0, true),
-        STORE(0.5, -0.7, true), //values for "store" are the max limits for drive velocity proportion logic
-        INTAKE(0.7, 0.7, true),
+        STORE(0.5, 0.7, true), //values for "store" are the max limits for drive velocity proportion logic
+        HARD_STORE(0.5, 0.0, true),
+        INTAKE(0.4, 0.4, true),
         OUTAKE(-0.5, -0.5, true);
 
         public double innerIntakeSpeed = 0.0;

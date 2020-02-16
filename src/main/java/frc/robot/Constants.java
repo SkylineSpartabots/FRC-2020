@@ -26,27 +26,28 @@ public class Constants {
 	public static final double kQuickStopThreshold = 0;
 	public static final double kQuickStopAlpha = 0.05;
 
-	public static final double kDriveKaVolts = 0;
-	public static final double kDriveKvVolts = 0;
-	public static final double kDriveKsVolts = 0;
-	public static final double kDriveMaxVelocity = 0;
-	public static final double kDriveMaxAcceleration = 0;
+	public static final double kDriveKaVolts = 0.2;
+	public static final double kDriveKvVolts = 1.98;
+	public static final double kDriveKsVolts = 0.22;
+	public static final double kDriveMaxVelocity = 2; //4.75
+	public static final double kDriveMaxAcceleration = 2; //3.166
 
 	// Shooter	
-	public static final double kShooterRampRate = 0;
+	public static final double kShooterRampRate = 0.2;
 	public static final int kShooterKfBufferSize = 20;
-	public static final double kShooterkP = 0.09;
-	public static final double kShooterkI = 0.00008;
+	public static final double kShooterkP = 0.00;
+	public static final double kShooterkI = 0.00;
 	public static final double kShooterkD = 0;
-	public static final double kShooterkF = 0.03;
+	public static final double kShooterkF = 0.049;
 	public static final int kShooterIZone = 0;
-	public static final double kShooterStartOnTargetRpm = 0;
-	public static final double kShooterStopOnTargetRpm = 0;
-	public static final int kShooterMinOnTargetSamples = 0;
+	public static final double kShooterStartOnTargetRpm = 300;
+	public static final double kShooterStopOnTargetRpm = 200;
+	public static final int kShooterMinOnTargetSamples = 20;
+	public static final double kRawVelocityToRpm = 2048.0/6000.0;
 
 	// Limelight
-	public static final double kLensHeight = 27.06;
-	public static final double kLensHorizontalAngle = 15;
+	public static final double kLensHeight = 26;
+	public static final double kLensHorizontalAngle = 60;
 	public static final double kTargetHeight = 98.5;
 
 	
@@ -67,6 +68,10 @@ public class Constants {
 	public static final double kCompressorShutOffCurrent = 0;
 
 	public static final double kRotationControlPercentOutput = 0;
+
+	public static final double kStandardShootVelocity = 6500;
+
+	public static final double kDriveAlignControlGainSchedule = 0;
 
 	
 

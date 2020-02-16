@@ -13,6 +13,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import frc.lib.util.DriveSignal;
+import frc.lib.util.TelemetryUtil;
+import frc.lib.util.TelemetryUtil.PrintStyle;
+import frc.robot.Constants;
 import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 import frc.robot.subsystems.Climb.ClimbControlState;
@@ -35,12 +38,12 @@ public class Superstructure extends Subsystem {
         return mInstance;
     }
 
-    private Drive mDrive = Drive.getInstance();
-    private Shooter mShooter = Shooter.getInstance();
-    private Spinner mSpinner = Spinner.getInstance();
-    private Hopper mHopper = Hopper.getInstance();
-    private Intake mIntake = Intake.getInstance();
-    private Climb mClimb = Climb.getInstance();
+    private Drive mDrive;
+    private Shooter mShooter;
+   // private Spinner mSpinner = Spinner.getInstance();
+    private Hopper mHopper;
+    private Intake mIntake;
+    //private Climb mClimb = Climb.getInstance();
 
     private RequestList activeRequests;
     private ArrayList<RequestList> queuedRequests;
@@ -50,9 +53,16 @@ public class Superstructure extends Subsystem {
     private boolean activeRequestsCompleted = false;
     private boolean allRequestsCompleted = false;
 
-    private Superstructure() {}
 
-    
+    private Superstructure() {
+        mDrive = Drive.getInstance();
+        mShooter = Shooter.getInstance();
+        mHopper = Hopper.getInstance();
+        mIntake = Intake.getInstance();
+
+        queuedRequests = new ArrayList<>(0);
+    }
+
     public boolean requestsCompleted() {
         return allRequestsCompleted;
     }
@@ -131,6 +141,7 @@ public class Superstructure extends Subsystem {
         setQueuedRequests(lists);
     }
 
+     
 
     @Override
     public void registerEnabledLoops(ILooper mEnabledLooper) {
@@ -138,9 +149,9 @@ public class Superstructure extends Subsystem {
 
             @Override
             public void onStart(double timestamp) {
-        
+                stop();
             }
-
+    
             @Override
             public void onLoop(double timestamp) {
                 synchronized (Superstructure.this) {
@@ -191,18 +202,26 @@ public class Superstructure extends Subsystem {
     
                 }
             }
-
+    
             @Override
             public void onStop(double timestamp) {
-                stop();
-
+                
             }
-
+    
         });
     }
 
+    public void clearRequests() {
+        activeRequests = new RequestList();
+        queuedRequests.clear();
+    }
 
-    public void autoPositionControl() {
+    public RequestList disabledRequest() {
+        return new RequestList(Arrays.asList(mDrive.openLoopRequest(DriveSignal.BRAKE)), true);
+    }
+
+
+    /*public void autoPositionControl() {
         RequestList state = new RequestList(Arrays.asList(mDrive.turnRequest(180, 2), 
             mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF),
             mSpinner.openLopoRequest(0.0), mClimb.stateRequest(ClimbControlState.OFF)), true);
@@ -221,10 +240,26 @@ public class Superstructure extends Subsystem {
             mSpinner.rotationControlRequest()), false);
         request(state);
         replaceQueue(queue);
+    }*/
+
+    public void autoShootSequence() {
+        TelemetryUtil.print("Running auto sequence", PrintStyle.ERROR, true);
+        RequestList state = new RequestList(Arrays.asList(mDrive.alignToTargetRequest(), 
+            mShooter.setSpinUpAndWaitRequest(Constants.kStandardShootVelocity),
+            mIntake.stateRequest(IntakeControlState.HARD_STORE), mHopper.stateRequest(HopperControlState.OFF)), true);
+        RequestList queue = new RequestList(Arrays.asList(/*mShooter.setVelocityFromVisionRequest(),*/ mHopper.stateRequest(HopperControlState.INDEX)), false);
+        request(state);
+        replaceQueue(queue);
+    }
+
+    public void alignToTargetRequestSuper() {
+        addFormostActiveRequest(mDrive.alignToTargetRequest());
     }
 
 
-    public Request driveUntilControlPanelRequest() {
+    
+
+    /*public Request driveUntilControlPanelRequest() {
         Request request = new Request(){
         
             @Override
@@ -241,7 +276,7 @@ public class Superstructure extends Subsystem {
         request.withPrerequisite(mSpinner.deployedPrerequisite);
 
         return request;
-    }
+    }*/
 
 
 
@@ -249,7 +284,7 @@ public class Superstructure extends Subsystem {
 
     @Override
     public void stop() {
-
+        setActiveRequests(disabledRequest());
     }
 
     @Override

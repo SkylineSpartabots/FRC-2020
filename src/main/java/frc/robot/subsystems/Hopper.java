@@ -84,16 +84,16 @@ public class Hopper extends Subsystem {
         configureIndexMotor(mIndexMotor, InvertType.None);
 
         mLeftBelt = TalonSRXFactory.createDefaultTalon("Left Belt Motor", Ports.HOPPER_LEFT_BELT);
-        configureBeltMotor(mLeftBelt, InvertType.None);
+        configureBeltMotor(mLeftBelt, InvertType.InvertMotorOutput);
 
         mRightBelt = TalonSRXFactory.createDefaultTalon("Right Belt Motor", Ports.HOPPER_RIGHT_BELT);
-        configureBeltMotor(mRightBelt, InvertType.InvertMotorOutput);
+        configureBeltMotor(mRightBelt, InvertType.None);
     }
 
 
     public enum HopperControlState {
         OFF(0.0, 0.0, 0.0),
-        INDEX(0.9, 0.6, 0.6),
+        INDEX(0.8, 0.6, 0.75),
         SLOW_INDEX(0.4, 0.6, 0.6),
         REVERSE(-0.3, -0.5, -0.5);
 

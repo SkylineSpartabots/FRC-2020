@@ -29,6 +29,7 @@ public class Limelight extends Subsystem {
 
     private Limelight() {
         mNetworkTable = NetworkTableInstance.getDefault().getTable("limelight");
+        setLed(LedMode.ON);
     }
 
     public static class PeriodicIO {

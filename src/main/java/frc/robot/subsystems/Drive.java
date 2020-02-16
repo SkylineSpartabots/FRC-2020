@@ -163,13 +163,14 @@ public class Drive extends Subsystem {
         mLeftPidController = new PIDController(0.0, 0.0, 0.0);
         mRightPidController = new PIDController(0.0, 0.0, 0.0);
 
-        mTurnPidController = new PIDController(0.01, 0.0, 0.0);
+        mTurnPidController = new PIDController(0.004, 0.0, 0.0);
         mTurnPidController.enableContinuousInput(-180, 180);
         mTurnPidController.setTolerance(1.0, 1.5);
 
-        mAlignPidController = new PIDController(0.01, 0.0, 0.0);
+        mAlignPidController = new PIDController(0.007, 0.006, 0.0);
+        mAlignPidController.setIntegratorRange(-0.15, 0.15);
         mAlignPidController.enableContinuousInput(-180, 180);
-        mAlignPidController.setTolerance(1.0, 1.5);
+        mAlignPidController.setTolerance(2.0);
 
         mIsBrakeMode = false;
         setBrakeMode(true);
@@ -453,6 +454,8 @@ public class Drive extends Subsystem {
                 rightMotorOutput = throttle - turn;
             }
         }
+
+        SmartDashboard.putNumber("Right Power", rightMotorOutput);
         setOpenLoop(new DriveSignal(Util.limit(leftMotorOutput, -1.0, 1.0), Util.limit(rightMotorOutput, -1.0, 1.0)));
         
     }
@@ -511,8 +514,10 @@ public class Drive extends Subsystem {
 
     private void updatePathFollower() {
         if(mCurrentPath != null && mDriveControlState == DriveControlState.PATH_FOLLOWING) {
+            
             double currentTime = Timer.getFPGATimestamp();
             double dt = currentTime - mPrevPathClockCycleTime;
+            TelemetryUtil.print("PATH FOLLOWING", PrintStyle.ERROR, false);
 
             DifferentialDriveWheelSpeeds wheelSpeeds = mDriveKinematics.toWheelSpeeds(mRamseteController.calculate(getDrivePose(), 
                 mCurrentPath.sample(currentTime-mTimeSincePathStart)));
@@ -533,6 +538,8 @@ public class Drive extends Subsystem {
 
             mPrevPathClockCycleTime = currentTime;
             mPrevWheelSpeeds = wheelSpeeds;
+
+        
 
         } else {
             TelemetryUtil.print("Robot is not in a path following state", PrintStyle.ERROR, true);
@@ -594,10 +601,17 @@ public class Drive extends Subsystem {
     private void updateAlignController() {
         if(mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
             if(mLimelight.seesTarget()) {
+                double error = mAlignPidController.getPositionError();
+                if(Math.abs(error) > Constants.kDriveAlignControlGainSchedule) {
+                    mAlignPidController.setPID(0.006, 0.0, 0.0);
+                } else {
+                    mAlignPidController.setPID(0.007, 0.01, 0.0);
+                }
                 double output = mAlignPidController.calculate(getHeading().getDegrees(), 
                     getHeading().getDegrees() + mLimelight.getXOffset());
                 setVelocity(new DriveSignal(output, -output));
                 mIsAlignToTarget = mAlignPidController.atSetpoint();
+
             } else {
                 double output = mAlignPidController.calculate(getHeading().getDegrees(), 0.0);
                 setVelocity(new DriveSignal(output, -output));
@@ -608,6 +622,14 @@ public class Drive extends Subsystem {
         }
     }
 
+
+    public synchronized boolean hasAlginedToTarget() {
+        if(mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
+            return mIsAlignToTarget;
+        }
+
+        return true;
+    }
     
 
     /**
@@ -705,11 +727,11 @@ public class Drive extends Subsystem {
      */
     @Override
     public void outputTelemetry() {
-        SmartDashboard.putNumber("Left Drive Velocity", getLeftLinearVelocity());
-        SmartDashboard.putNumber("Right Drive Velocity", getRightLinearVelocity());
-        SmartDashboard.putNumber("Left Position Meters", getLeftPosition());
-        SmartDashboard.putNumber("Right Position Meters", getRightPosition());
-        SmartDashboard.putNumber("NavX Heading", mNavx.getHeading()); 
+        SmartDashboard.putNumber("NavX Heading", getHeading().getDegrees());
+        SmartDashboard.putNumber("Odometry X", mOdometry.getPoseMeters().getTranslation().getX());
+        SmartDashboard.putNumber("Odometry Y", mOdometry.getPoseMeters().getTranslation().getY());
+        SmartDashboard.putNumber("Odometry Heading", mOdometry.getPoseMeters().getRotation().getDegrees());
+        SmartDashboard.putBoolean("Is Aligned To Target", hasAlginedToTarget());
     }
 
 
@@ -753,6 +775,22 @@ public class Drive extends Subsystem {
             @Override
             public boolean isFinished() {
                 return (Timer.getFPGATimestamp() - startTime) >= timeout || hasReachedHeadingTarget();
+            }
+        };
+    }
+
+    public Request alignToTargetRequest() {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                setAlignToTarget();
+                TelemetryUtil.print("Aligning to target", PrintStyle.ERROR, false);
+            }
+
+            @Override
+            public boolean isFinished() {
+                return hasAlginedToTarget();
             }
         };
     }

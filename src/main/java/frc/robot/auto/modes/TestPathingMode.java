@@ -31,12 +31,12 @@ public class TestPathingMode extends AutoModeBase {
     public TestPathingMode(boolean left) {
        mLeft = left;
        mFirstPath = new DrivePathAction(paths.startPositionOneToTrenchEnd, true);
-       mSecondPath = new DrivePathAction(paths.trenchEndToShootLocation, true);
+       //mSecondPath = new DrivePathAction(paths.trenchEndToShootLocation, true);
     }
 
     @Override
     protected void routine() throws ModeEndedException {
         runAction(mFirstPath);
-        runAction(mSecondPath);
+        //runAction(mSecondPath);
     }
 }

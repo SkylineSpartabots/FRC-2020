@@ -36,6 +36,7 @@ import frc.robot.subsystems.Spinner;
 import frc.robot.subsystems.SubsystemManager;
 import frc.robot.subsystems.Superstructure;
 import frc.robot.subsystems.Climb.ClimbControlState;
+import frc.robot.subsystems.Hopper.HopperControlState;
 import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.Limelight.LedMode;
 
@@ -55,11 +56,11 @@ public class Robot extends TimedRobot {
   private final SubsystemManager mSubsystemManager = SubsystemManager.getInstance();
 
   private final Intake mIntake = Intake.getInstance();
-  //private final Hopper mHopper = Hopper.getInstance();
+  private final Hopper mHopper = Hopper.getInstance();
   //private final Spinner mSpinner = Spinner.getInstance();
-  private final Climb mClimb = Climb.getInstance();
+  //private final Climb mClimb = Climb.getInstance();
   //private final LED mLED = LED.getInstance();
-  //private final Shooter mShooter = Shooter.getInstance();
+  private final Shooter mShooter = Shooter.getInstance();
   private final Drive mDrive = Drive.getInstance();
   private final Superstructure mSuperstructure = Superstructure.getInstance();
 
@@ -85,14 +86,21 @@ public class Robot extends TimedRobot {
 
     
       mSubsystemManager.setSubsystems(
-        mDrive
-        //mLimelight
+        mDrive,
+        mLimelight,
+        mIntake,
+        mHopper,
+        mShooter,
+        //mClimb,
+        mSuperstructure
       );
 
       mSubsystemManager.registerEnabledLoops(mEnabledLooper);
       mSubsystemManager.registerDisabledLoops(mDisabledLooper);
 
-      mDrive.zeroSensors();
+      mSubsystemManager.zeroSensors();
+
+      
       mPathGenerator.generatePaths();
       
     } catch (Throwable t) {
@@ -118,6 +126,7 @@ public class Robot extends TimedRobot {
     try {
       CrashTracker.logDisabledInit();
       mEnabledLooper.stop();
+      mDisabledLooper.start();
 
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
@@ -212,7 +221,9 @@ public class Robot extends TimedRobot {
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
       }
-      mLimelight.setLed(LedMode.OFF);
+      mLimelight.setLed(LedMode.ON);
+
+      mSubsystemManager.zeroSensors();
 
       mEnabledLooper.start();
     } catch (Throwable t) {
@@ -249,8 +260,8 @@ public class Robot extends TimedRobot {
       mDisabledLooper.stop();
       
       
-      mAutoModeExecutor.stop();
-      mTestModeExecutor.start();
+     // mAutoModeExecutor.stop();
+      //mTestModeExecutor.start();
 
       mEnabledLooper.start();
       
@@ -274,7 +285,7 @@ public class Robot extends TimedRobot {
 
 
 
-  private boolean deployIntake = false;
+  private boolean deployIntake = true;
   private boolean automatedControlEnabled = false;
 
   public void driverControl() {
@@ -286,29 +297,35 @@ public class Robot extends TimedRobot {
         Start auto shoot sequence - B
     */
 
-    if(mOperatorController.bButton.isBeingPressed()) {
+   if(mOperatorController.dpadUp.isBeingPressed()) {
       if(!automatedControlEnabled) {
-        //completely automated shoot control superstructure command
+        TelemetryUtil.print("Auto", PrintStyle.ERROR, false);
+        mSuperstructure.autoShootSequence();
         automatedControlEnabled = true;
       }
-      return;
-    }
-
-    if(mOperatorController.dpadUp.isBeingPressed()) {
+    }/* else if(mOperatorController.dpadUp.isBeingPressed()) {
       if(!automatedControlEnabled) {
         mSuperstructure.autoRotationControl();
         automatedControlEnabled = true;
       }
-      return;
-    }
-
-    if(mOperatorController.dpadDown.isBeingPressed()) {
+    } else if(mOperatorController.dpadDown.isBeingPressed()) {
       if(!automatedControlEnabled) {
         mSuperstructure.autoPositionControl();
         automatedControlEnabled = true;
       }
-      return;
+    } */else if(mOperatorController.rightBumper.isBeingPressed()) {
+      if(!automatedControlEnabled) {
+        mDrive.setAlignToTarget();
+        automatedControlEnabled = true;
+      }
+    } else {
+      automatedControlEnabled = false;
+
     }
+
+
+    
+
 
 
 
@@ -317,7 +334,15 @@ public class Robot extends TimedRobot {
         Quick-spin Override: Back
     */
 
-    mDrive.setCurvatureDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight), mDriveController.backButton.isBeingPressed());
+  
+
+
+    if(mOperatorController.xButton.isBeingPressed()) {
+      mDrive.setAlignToTarget();
+    } else {
+      mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+    }
+    
     
 
    /* Intake Controls:
@@ -325,21 +350,23 @@ public class Robot extends TimedRobot {
         Retract Intake - Y
     */
 
-    if(mOperatorController.yButton.wasActivated()) {
-      deployIntake = false;
-    }
-
-    if(mOperatorController.leftBumper.isBeingPressed()) {
-      mIntake.conformToState(IntakeControlState.INTAKE);
-      deployIntake = true;
-    } else {
-      if(deployIntake) {
-        mIntake.conformToState(IntakeControlState.STORE);
+    if(!automatedControlEnabled) {
+      if(mOperatorController.yButton.wasActivated()) {
+        deployIntake = false;
+      }
+  
+      if(mOperatorController.leftBumper.isBeingPressed()) {
+        mIntake.conformToState(IntakeControlState.INTAKE);
+        deployIntake = true;
       } else {
-        mIntake.conformToState(IntakeControlState.OFF);
+        if(deployIntake) {
+          mIntake.conformToState(IntakeControlState.STORE);
+        } else {
+          mIntake.conformToState(IntakeControlState.OFF);
+        }
       }
     }
-   
+
    
     /* Shooter controls:
         Start shooter ramp - Left paddle
@@ -348,6 +375,15 @@ public class Robot extends TimedRobot {
         Open loop shooter control - Right trigger
         Feign Ball - x (optional)
     */
+
+    if(mOperatorController.rightTrigger.isBeingPressed()) {
+      mShooter.setOpenLoop(0.6);
+    } else if(mOperatorController.bButton.isBeingPressed()) {
+      mShooter.setSpinUp(6500);
+    } else if(!automatedControlEnabled) {
+      mShooter.setOpenLoop(0.0);
+    }
+    
 
     /* Spinner controls:
         Start rotation control - Dpad up
@@ -364,18 +400,28 @@ public class Robot extends TimedRobot {
         Open loop hopper control - left trigger
     */
 
+    if(!automatedControlEnabled) {
+      if(mOperatorController.leftTrigger.isBeingPressed()) {
+        mHopper.conformToState(HopperControlState.INDEX);
+      } else {
+        mHopper.conformToState(HopperControlState.OFF);
+      }
+    }
+
+
+
 
     /* Climb Control:
         Deploy climb: back
         Retract climb: start
     */
-    if(mOperatorController.backButton.isBeingPressed()) {
+    /*if(mOperatorController.backButton.isBeingPressed()) {
       mClimb.conformToState(ClimbControlState.RAISE_HOOK);
     } else if(mOperatorController.startButton.isBeingPressed()) {
       mClimb.conformToState(ClimbControlState.AUTO_WINCH_UP);
     } else {
       mClimb.conformToState(ClimbControlState.OFF);
-    }
+    }*/
 
 
     

@@ -36,6 +36,10 @@ public class SubsystemManager implements ILooper {
         mAllSubsystems.forEach(Subsystem::outputTelemetry);
     }
 
+    public void zeroSensors() {
+        mAllSubsystems.forEach(Subsystem::zeroSensors);
+    }
+
     public boolean checkSubsystems() {
         boolean ret_val = true;
 
