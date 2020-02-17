@@ -35,7 +35,7 @@ public class Limelight extends Subsystem {
     public static class PeriodicIO {
         //Inputs
         public double givenLedMode;
-        public int givenPipeline;
+        public int givenCamMode;
         public double xOffset;
         public double yOffset;
         public double area;
@@ -55,7 +55,7 @@ public class Limelight extends Subsystem {
     @Override
     public synchronized void readPeriodicInputs() {
         mPeriodicIO.givenLedMode = (int) mNetworkTable.getEntry("ledMode").getDouble(1.0);
-        mPeriodicIO.givenPipeline = (int) mNetworkTable.getEntry("pipeline").getDouble(0);
+        mPeriodicIO.givenCamMode = (int) mNetworkTable.getEntry("camMode").getDouble(0.0);
         mPeriodicIO.xOffset = mNetworkTable.getEntry("tx").getDouble(0.0);
         mPeriodicIO.yOffset = mNetworkTable.getEntry("ty").getDouble(0.0);
         mPeriodicIO.area = mNetworkTable.getEntry("ta").getDouble(0.0);
@@ -65,7 +65,7 @@ public class Limelight extends Subsystem {
     @Override
     public synchronized void writePeriodicOutputs() {
         if (mPeriodicIO.givenLedMode != mPeriodicIO.ledMode ||
-                mPeriodicIO.givenPipeline != mPeriodicIO.pipeline) {
+                mPeriodicIO.givenCamMode != mPeriodicIO.camMode) {
             mOutputsHaveChanged = true;
         }
         if (mOutputsHaveChanged) {
@@ -107,6 +107,14 @@ public class Limelight extends Subsystem {
             mPeriodicIO.ledMode = mode.ordinal();
             mOutputsHaveChanged = true;
         }
+    }
+
+    public synchronized void setDriveMode() {
+        mPeriodicIO.camMode = 1;
+    }
+
+    public synchronized void setVisionMode() {
+        mPeriodicIO.camMode = 0;
     }
 
     public synchronized void setPipeline(int pipeline) {

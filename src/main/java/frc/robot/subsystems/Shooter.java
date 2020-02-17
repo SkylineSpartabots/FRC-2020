@@ -173,8 +173,6 @@ public class Shooter extends Subsystem {
     public void readPeriodicInputs() {
         mPeriodicIO.velocity_in_ticks_per_100ms = mMasterShooter.getSelectedSensorVelocity(0);
         mPeriodicIO.output_percent = mMasterShooter.getMotorOutputPercent(); 
-        SmartDashboard.putNumber("Velocity", mPeriodicIO.velocity_in_ticks_per_100ms / Constants.kRawVelocityToRpm);
-        SmartDashboard.putNumber("Voltage", mPeriodicIO.output_percent);
     }
 
 
@@ -218,9 +216,8 @@ public class Shooter extends Subsystem {
     public synchronized void shootFromDistance(double distanceInFeet) {
 
         //TODO: logic (function) for converting distances into desired velocities.
-        //TODO: update over time, prevent oscillation from hold to hold when ready
-
-        double desiredVelocity = 1000;
+        //TODO: update over time, prevent oscillation from hold to hold when read
+        double desiredVelocity = distanceInFeet;
         setHoldWhenReady(desiredVelocity);
     }
 
@@ -234,7 +231,7 @@ public class Shooter extends Subsystem {
     }
 
     public synchronized boolean isShooterActive() {
-        return mPeriodicIO.output_percent > 1.0;
+        return mPeriodicIO.output_percent > 0.3;
     }
 
     /**
@@ -267,11 +264,8 @@ public class Shooter extends Subsystem {
 
 
         }
-     
+    
         mMasterShooter.set(ControlMode.PercentOutput, percentOutput);
-        SmartDashboard.putNumber("Output of Shooter", mMasterShooter.getMotorOutputPercent());
-        SmartDashboard.putNumber("Stator Current Shooter", mMasterShooter.getStatorCurrent());
-        SmartDashboard.putNumber("Supply Current Shooter", mMasterShooter.getSupplyCurrent());
     }
 
     /**
@@ -412,6 +406,15 @@ public class Shooter extends Subsystem {
         return mControlState == ShooterControlState.HOLD;
     }
 
+    public synchronized boolean hasReachedSpinUpTarget() {
+        return Math.abs(mPeriodicIO.setpoint_rpm - mPeriodicIO.velocity_in_ticks_per_100ms)
+            < Constants.kShooterStartOnTargetRpm;
+    }
+
+    public synchronized double getCurrentRpm() {
+        return mPeriodicIO.velocity_in_ticks_per_100ms / Constants.kRawVelocityToRpm;
+    }
+
     /**
      * returns periodicIO's setpointrpm
      * @return setpoint rpm
@@ -519,6 +522,8 @@ public class Shooter extends Subsystem {
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Ready to Fire?", isOnTarget());
+        SmartDashboard.putNumber("Shooter Output Percent", mPeriodicIO.output_percent);
+        SmartDashboard.putNumber("Shooter Velocity RPM", getCurrentRpm());
 
         if(debug) {
             SmartDashboard.putString("Shooter state", mControlState.toString());

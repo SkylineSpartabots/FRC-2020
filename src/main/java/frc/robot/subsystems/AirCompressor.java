@@ -9,6 +9,7 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
+import frc.lib.controllers.OverridesController;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
@@ -32,6 +33,7 @@ public class AirCompressor extends Subsystem {
 
     private final Superstructure mSuperstructure = Superstructure.getInstance();
     private final PowerDistributionPanel mPdp = new PowerDistributionPanel(Ports.PDP_ID);
+    private final OverridesController mOverrides = OverridesController.getInstance();
 
     private boolean mIsManualControl = false;
     private final Compressor mCompressor = new Compressor(Ports.PCM_ID);
@@ -52,7 +54,7 @@ public class AirCompressor extends Subsystem {
                     final boolean superstructureIsMoving = !mSuperstructure.isAtDesiredState();
                     final boolean isBrowningOut = mPdp.getTotalCurrent() > Constants.kCompressorShutOffCurrent;
 
-                    if (superstructureIsMoving || isBrowningOut || !mIsManualControl) {
+                    if (superstructureIsMoving || isBrowningOut || !mIsManualControl || !mOverrides.airCompressorOverride.isEnabled()) {
                         stopCompressor();
                     } else {
                         startCompressor();

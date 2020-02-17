@@ -174,8 +174,8 @@ public class Drive extends Subsystem {
         mAlignPidController.setTolerance(2.0);
         mAlignPidController.setMinMaxOutput(-0.4, 0.4);
 
-        mIsBrakeMode = false;
-        setBrakeMode(true);
+        mIsBrakeMode = true;
+        setBrakeMode(false);
         setOpenLoop(DriveSignal.NEUTRAL);
     }
 
@@ -249,7 +249,7 @@ public class Drive extends Subsystem {
             public void onStart(double timestamp) {
                 synchronized (Drive.this) {
                     stop();
-                    setBrakeMode(true);
+                    setBrakeMode(false);
                 }
             }
 
@@ -282,7 +282,7 @@ public class Drive extends Subsystem {
             @Override
             public void onStop(double timestamp) {
                 stop();
-                setBrakeMode(true);
+                setBrakeMode(false);
             }
         });
     }

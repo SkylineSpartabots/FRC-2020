@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.lib.controllers.OverridesController;
 import frc.lib.controllers.Xbox;
 import frc.lib.util.CrashTracker;
 import frc.lib.util.DriveSignal;
@@ -52,6 +53,7 @@ public class Robot extends TimedRobot {
   //Drive team Controllers
   private final Xbox mDriveController = new Xbox(0);
   private final Xbox mOperatorController = new Xbox(1);
+  private final OverridesController mOverridesController = OverridesController.getInstance();
 
 
   //Subsystems
@@ -130,7 +132,7 @@ public class Robot extends TimedRobot {
       mEnabledLooper.stop();
       mDisabledLooper.start();
 
-      mLimelight.setLed(LedMode.OFF);
+      mLimelight.setDriveMode();
 
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
@@ -245,13 +247,11 @@ public class Robot extends TimedRobot {
     try {
       mDriveController.update();
       mOperatorController.update();
+      mOverridesController.update();
 
-      driverControl();
-      
-      SmartDashboard.putString("Target Distance", (int)mLimelight.getDistance()/12 + "', " + mLimelight.getDistance()%12);
-      SmartDashboard.putNumber("Y Offset", mLimelight.getYOffset());
-      SmartDashboard.putNumber("X Offset", mLimelight.getXOffset());
-      //SmartDashboard.putNumber("Heading", mDrive.getHeading().getDegrees());      
+      //driverControl();
+      shooterCalibration();
+    
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
       throw t;
@@ -388,15 +388,17 @@ public class Robot extends TimedRobot {
         Feign Ball - x (optional)
     */
 
-    if(!automatedControlEnabled) {
-      if(mOperatorController.rightTrigger.isBeingPressed()) {
-        mShooter.setOpenLoop(1.0);
-      } else if(mOperatorController.bButton.isBeingPressed()) {
-        mShooter.setHoldWhenReady(8700);
-      } else if(!automatedControlEnabled) {
-        mShooter.setOpenLoop(0.0);
-      }
+
+    if(mOperatorController.rightTrigger.isBeingPressed()) {
+      mShooter.setOpenLoop(0.6);
+    } else if(mOperatorController.bButton.isBeingPressed()) {
+      mShooter.setSpinUp(8000);
+    } else if(mOperatorController.yButton.isBeingPressed()) {
+      mShooter.shootFromVisionDistance();
+    } else if(!automatedControlEnabled) {
+      mShooter.setOpenLoop(0.0);
     }
+ 
     
     
 
@@ -442,6 +444,32 @@ public class Robot extends TimedRobot {
     
     
   
+  }
+
+
+  private double mShootCalibrationVelocity = 0.0;
+  public void shooterCalibration() {
+    mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
+    SmartDashboard.putNumber("Limelight Distance", mLimelight.getDistance());
+  
+
+    if(mOperatorController.aButton.isBeingPressed()) {
+      mShooter.setSpinUp(mShootCalibrationVelocity);
+    } else {
+      mShooter.setOpenLoop(0.0);
+    }
+
+    if(mOperatorController.leftTrigger.isBeingPressed()) {
+      mHopper.conformToState(HopperControlState.INDEX);
+    } else {
+      mHopper.conformToState(HopperControlState.OFF);
+    }
+
+    if(mOperatorController.leftBumper.isBeingPressed()) {
+      mIntake.conformToState(IntakeControlState.INTAKE);
+    } else {
+      mIntake.conformToState(IntakeControlState.IDLE_WHILE_DEPLOYED);
+    }
   }
 
  
