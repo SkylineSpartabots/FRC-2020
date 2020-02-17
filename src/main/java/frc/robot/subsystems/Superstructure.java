@@ -245,8 +245,8 @@ public class Superstructure extends Subsystem {
     public void autoShootSequence() {
         TelemetryUtil.print("Running auto sequence", PrintStyle.ERROR, true);
         RequestList state = new RequestList(Arrays.asList(mDrive.alignToTargetRequest(), 
-            mShooter.setSpinUpAndWaitRequest(Constants.kStandardShootVelocity),
-            mIntake.stateRequest(IntakeControlState.HARD_STORE), mHopper.stateRequest(HopperControlState.OFF)), true);
+            mShooter.setVelocityAndWaitRequest(Constants.kStandardShootVelocity),
+            mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF)), true);
         RequestList queue = new RequestList(Arrays.asList(/*mShooter.setVelocityFromVisionRequest(),*/ mHopper.stateRequest(HopperControlState.INDEX)), false);
         request(state);
         replaceQueue(queue);

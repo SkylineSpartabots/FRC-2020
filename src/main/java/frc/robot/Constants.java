@@ -36,14 +36,14 @@ public class Constants {
 	public static final double kShooterRampRate = 0.2;
 	public static final int kShooterKfBufferSize = 20;
 	public static final double kShooterkP = 0.00;
-	public static final double kShooterkI = 0.00;
+	public static final double kShooterkI = 0.00001;
 	public static final double kShooterkD = 0;
 	public static final double kShooterkF = 0.049;
 	public static final int kShooterIZone = 0;
 	public static final double kShooterStartOnTargetRpm = 300;
 	public static final double kShooterStopOnTargetRpm = 200;
 	public static final int kShooterMinOnTargetSamples = 20;
-	public static final double kRawVelocityToRpm = 2048.0/6000.0;
+	public static final double kRawVelocityToRpm = 1195.0/600.0;
 
 	// Limelight
 	public static final double kLensHeight = 26;
@@ -69,9 +69,15 @@ public class Constants {
 
 	public static final double kRotationControlPercentOutput = 0;
 
-	public static final double kStandardShootVelocity = 6500;
+	public static final double kStandardShootVelocity = 8500;
 
-	public static final double kDriveAlignControlGainSchedule = 0;
+	public static final double kDriveAlignControlGainSchedule = 3.5;
+
+	public static final int kIndexSensorThreshold = 0;
+
+	public static final double kStartUnjamTimeThreshold = 1;
+
+	public static final double kStopUnjamTime = 0.4;
 
 	
 

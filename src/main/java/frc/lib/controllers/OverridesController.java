@@ -22,16 +22,16 @@ public class OverridesController {
 
     private final Joystick mJoystick;
 
-    public Override visionOverride, shooterClosedLoopOverride, navxOverride, driveEncoderOverride,
-        spinnerColorSensorOverride, spinnerEncoderOverride;
+    public final Override visionOverride, shooterClosedLoopOverride, idleShooterOverride,
+        spinnerColorSensorOverride, spinnerEncoderOverride, airCompressorOverride, indexSensorOverride;
 
     private final int VISION = 1; //arduino port: 4
     private final int SHOOTER_CLOSED_LOOP = 2; //arduino port: 5
-    private final int NAVX = 3; //arduino port: 3
-    private final int DRIVE_ENCODER = 4; //arduino port: 2
-    private final int COLOR_SENSOR = 5; //arduino port: 10
-    private final int SPINNER_ENCODER = 6; //arduino port: 11
-    private final int AIR_COMPRESSOR = 7;
+    private final int IDLE_SHOOTER = 3; //arduino port: 3
+    private final int COLOR_SENSOR = 4; //arduino port: 2
+    private final int SPINNER_ENCODER = 5; //arduino port: 10
+    private final int AIR_COMPRESSOR = 6; //arduino port: 11
+    private final int INDEX_SENSOR = 9; //arduino port: 12
 
 
     private OverridesController() {
@@ -39,10 +39,11 @@ public class OverridesController {
 
         visionOverride = new Override(VISION);
         shooterClosedLoopOverride = new Override(SHOOTER_CLOSED_LOOP);
-        navxOverride = new Override(NAVX);
-        driveEncoderOverride = new Override(DRIVE_ENCODER);
+        idleShooterOverride = new Override(IDLE_SHOOTER);
         spinnerColorSensorOverride = new Override(COLOR_SENSOR);
         spinnerEncoderOverride = new Override(SPINNER_ENCODER);
+        airCompressorOverride = new Override(AIR_COMPRESSOR);
+        indexSensorOverride = new Override(INDEX_SENSOR);
     }
 
 
@@ -89,8 +90,7 @@ public class OverridesController {
     public void update() {
         visionOverride.update();
         shooterClosedLoopOverride.update();
-        navxOverride.update();
-        driveEncoderOverride.update();
+        airCompressorOverride.update();
         spinnerColorSensorOverride.update();
         spinnerEncoderOverride.update();
     }

@@ -46,7 +46,7 @@ public class PathGenerator {
         mDriveKinematics = new DifferentialDriveKinematics(Constants.kDriveWheelTrackWidthMeters);
         mAutoVoltageConstraint = new DifferentialDriveVoltageConstraint(
             new SimpleMotorFeedforward(Constants.kDriveKsVolts, Constants.kDriveKvVolts, Constants.kDriveKaVolts), 
-            mDriveKinematics, 10.5);
+            mDriveKinematics, 10);
         
         mTrajectoryConfig = new TrajectoryConfig(Constants.kDriveMaxVelocity, Constants.kDriveMaxAcceleration)
             .setKinematics(mDriveKinematics).addConstraint(mAutoVoltageConstraint);
@@ -114,7 +114,7 @@ public class PathGenerator {
         innerWaypoints.add(new Translation2d(1, 1));
         innerWaypoints.add(new Translation2d(2, -1));
 
-        return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, true);
+        return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, false);
     }
 
 
@@ -122,7 +122,7 @@ public class PathGenerator {
         List<Translation2d> innerWaypoints = new ArrayList<>();
         innerWaypoints.add(new Translation2d(1.0, 0));
 
-        return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, true);
+        return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, false);
     }
 
     private Trajectory getTrenchEndToShootLocation() {

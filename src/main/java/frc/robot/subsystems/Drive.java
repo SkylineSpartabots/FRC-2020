@@ -77,6 +77,7 @@ public class Drive extends Subsystem {
     private Trajectory mCurrentPath = null;
     private double mTimeSincePathStart = 0.0;
     private double mPrevPathClockCycleTime = 0.0;
+    private double mRememberedGyroTarget = 0.0;
 
     // control states
     private DriveControlState mDriveControlState;
@@ -167,10 +168,11 @@ public class Drive extends Subsystem {
         mTurnPidController.enableContinuousInput(-180, 180);
         mTurnPidController.setTolerance(1.0, 1.5);
 
-        mAlignPidController = new PIDController(0.007, 0.006, 0.0);
-        mAlignPidController.setIntegratorRange(-0.15, 0.15);
+        mAlignPidController = new PIDController(0.004, 0.0022, 0.00);
+        mAlignPidController.setIntegratorRange(-0.1, 0.1);
         mAlignPidController.enableContinuousInput(-180, 180);
         mAlignPidController.setTolerance(2.0);
+        mAlignPidController.setMinMaxOutput(-0.4, 0.4);
 
         mIsBrakeMode = false;
         setBrakeMode(true);
@@ -485,11 +487,14 @@ public class Drive extends Subsystem {
     public synchronized void setDrivePath(Trajectory path) {
         if(mCurrentPath != path || mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             mCurrentPath = path;
-            mPrevPathClockCycleTime = 0.0;
+            mPrevPathClockCycleTime = Timer.getFPGATimestamp();
 
             Trajectory.State initialState = path.sample(0);
             mPrevWheelSpeeds = mDriveKinematics.toWheelSpeeds(new ChassisSpeeds(initialState.velocityMetersPerSecond,
             0, initialState.curvatureRadPerMeter * initialState.velocityMetersPerSecond));
+
+            mLeftPidController.reset();
+            mRightPidController.reset();
 
             mTimeSincePathStart = Timer.getFPGATimestamp();
 
@@ -514,10 +519,9 @@ public class Drive extends Subsystem {
 
     private void updatePathFollower() {
         if(mCurrentPath != null && mDriveControlState == DriveControlState.PATH_FOLLOWING) {
-            
             double currentTime = Timer.getFPGATimestamp();
             double dt = currentTime - mPrevPathClockCycleTime;
-            TelemetryUtil.print("PATH FOLLOWING", PrintStyle.ERROR, false);
+            
 
             DifferentialDriveWheelSpeeds wheelSpeeds = mDriveKinematics.toWheelSpeeds(mRamseteController.calculate(getDrivePose(), 
                 mCurrentPath.sample(currentTime-mTimeSincePathStart)));
@@ -530,6 +534,7 @@ public class Drive extends Subsystem {
             
             double rightOutput = mFeedforwardController.calculate(rightVelocitySetpoint,
                 (rightVelocitySetpoint - mPrevWheelSpeeds.rightMetersPerSecond) / dt);
+
 
             leftOutput += mLeftPidController.calculate(getLeftLinearVelocity(), leftVelocitySetpoint);
             rightOutput += mRightPidController.calculate(getRightLinearVelocity(), rightVelocitySetpoint);
@@ -595,25 +600,21 @@ public class Drive extends Subsystem {
             mIsAlignToTarget = false;
             mAlignPidController.reset();
             mDriveControlState = DriveControlState.ALIGN_TO_TARGET;
+            mRememberedGyroTarget = 0.0;
         }
     }
 
     private void updateAlignController() {
         if(mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
-            if(mLimelight.seesTarget()) {
-                double error = mAlignPidController.getPositionError();
-                if(Math.abs(error) > Constants.kDriveAlignControlGainSchedule) {
-                    mAlignPidController.setPID(0.006, 0.0, 0.0);
-                } else {
-                    mAlignPidController.setPID(0.007, 0.01, 0.0);
-                }
+            if(mLimelight.seesTarget()) {            
+                mRememberedGyroTarget = getHeading().getDegrees() + mLimelight.getXOffset();
                 double output = mAlignPidController.calculate(getHeading().getDegrees(), 
-                    getHeading().getDegrees() + mLimelight.getXOffset());
+                    mRememberedGyroTarget);
                 setVelocity(new DriveSignal(output, -output));
                 mIsAlignToTarget = mAlignPidController.atSetpoint();
 
             } else {
-                double output = mAlignPidController.calculate(getHeading().getDegrees(), 0.0);
+                double output = mAlignPidController.calculate(getHeading().getDegrees(), mRememberedGyroTarget);
                 setVelocity(new DriveSignal(output, -output));
                 mIsAlignToTarget = false;
             }

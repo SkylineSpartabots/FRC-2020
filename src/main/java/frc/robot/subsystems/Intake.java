@@ -22,9 +22,7 @@ import frc.lib.drivers.PheonixUtil;
 import frc.lib.drivers.TalonSRXChecker;
 import frc.lib.drivers.TalonSRXFactory;
 import frc.lib.drivers.TalonSRXUtil;
-import frc.lib.util.TelemetryUtil;
 import frc.lib.util.Util;
-import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
@@ -45,7 +43,7 @@ public class Intake extends Subsystem {
     private final boolean debug = false;
 
     //hardware
-    private final Solenoid mIntakeSolenoid;
+    private final Solenoid mLeftIntakeSolenoid, mRightIntakeSolenoid;
     private final LazyTalonSRX mInnerIntakeMotor, mOuterIntakeMotor;
 
     //control states
@@ -71,7 +69,8 @@ public class Intake extends Subsystem {
     }
 
     private Intake() {
-        mIntakeSolenoid = new Solenoid(Ports.PCM_ID, Ports.INTAKE_SOLENOID_PORT);
+        mLeftIntakeSolenoid = new Solenoid(Ports.PCM_ID, Ports.INTAKE_LEFT_SOLENOID_PORT);
+        mRightIntakeSolenoid = new Solenoid(Ports.PCM_ID, Ports.INTAKE_RIGHT_SOLENOID_PORT);
         
         mInnerIntakeMotor = TalonSRXFactory.createDefaultTalon("Inner Intake Motor", Ports.INTAKE_INNER_MOTOR_ID);
         configureIntakeMotor(mInnerIntakeMotor, InvertType.None);
@@ -92,10 +91,12 @@ public class Intake extends Subsystem {
 
             @Override
             public void onLoop(double timestamp) {
-                if(mCurrentState == IntakeControlState.STORE) {
-                    double driveVelocity = mDrive.getAverageDriveVelocityMagnitude();
-                    setInnerIntakeSpeed(0.0);
-                    setOuterIntakeSpeed(-Util.limit(driveVelocity * 0.4, mCurrentState.outerIntakeSpeed));
+                synchronized(Intake.this) {
+                    if(mCurrentState == IntakeControlState.STORE) {
+                        double driveVelocity = mDrive.getAverageDriveVelocityMagnitude();
+                        setInnerIntakeSpeed(0.0);
+                        setOuterIntakeSpeed(-Util.limit(driveVelocity * 0.6, mCurrentState.outerIntakeSpeed));
+                    }
                 }
             }
 
@@ -112,7 +113,7 @@ public class Intake extends Subsystem {
     public enum IntakeControlState {
         OFF(0.0, 0.0, false),
         IDLE_WHILE_DEPLOYED(0.0, 0.0, true),
-        STORE(0.5, 0.7, true), //values for "store" are the max limits for drive velocity proportion logic
+        STORE(0.0, 0.7, true), //values for "store" are the max limits for drive velocity proportion logic
         HARD_STORE(0.5, 0.0, true),
         INTAKE(0.4, 0.4, true),
         OUTAKE(-0.5, -0.5, true);
@@ -150,7 +151,8 @@ public class Intake extends Subsystem {
     }
 
     public synchronized void setDeployState(boolean isDeployed) {
-        mIntakeSolenoid.set(isDeployed);
+        mLeftIntakeSolenoid.set(isDeployed);
+        mRightIntakeSolenoid.set(isDeployed);
     }
 
 
@@ -179,7 +181,7 @@ public class Intake extends Subsystem {
 
     @Override
     public boolean checkSystem() {
-        mIntakeSolenoid.set(true);
+        setDeployState(true);
 
         boolean check = TalonSRXChecker.checkMotors(this,
             new ArrayList<MotorChecker.MotorConfig<LazyTalonSRX>>() {    
@@ -198,7 +200,7 @@ public class Intake extends Subsystem {
                 }
             });
         
-        mIntakeSolenoid.set(false);
+        setDeployState(false);
 
         return check;
         
@@ -210,7 +212,7 @@ public class Intake extends Subsystem {
         if(debug) {
             SmartDashboard.putString("Intake State", mCurrentState.toString());
 
-            SmartDashboard.putBoolean("Intake Solenoid", mIntakeSolenoid.get());
+            SmartDashboard.putBoolean("Intake Solenoid", mLeftIntakeSolenoid.get());
 
             SmartDashboard.putNumber("Inner Intake Supply Current", mInnerIntakeMotor.getSupplyCurrent());
             SmartDashboard.putNumber("Inner Intake Stator Current", mInnerIntakeMotor.getStatorCurrent());

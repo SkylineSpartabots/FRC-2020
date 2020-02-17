@@ -13,6 +13,8 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.geometry.Pose2d;
+import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.Xbox;
 import frc.lib.util.CrashTracker;
@@ -128,6 +130,8 @@ public class Robot extends TimedRobot {
       mEnabledLooper.stop();
       mDisabledLooper.start();
 
+      mLimelight.setLed(LedMode.OFF);
+
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
       }
@@ -184,6 +188,7 @@ public class Robot extends TimedRobot {
       //Zero sensors and robot state accordingly
 
       mDrive.zeroSensors();
+      mDrive.resetOdometry(new Pose2d(new Translation2d(0.0, 0.0), mDrive.getHeading()));
       
       mAutoModeExecutor.start();
 
@@ -224,6 +229,7 @@ public class Robot extends TimedRobot {
       mLimelight.setLed(LedMode.ON);
 
       mSubsystemManager.zeroSensors();
+      mDrive.resetOdometry(new Pose2d(new Translation2d(0.0, 0.0), mDrive.getHeading()));
 
       mEnabledLooper.start();
     } catch (Throwable t) {
@@ -303,7 +309,7 @@ public class Robot extends TimedRobot {
         mSuperstructure.autoShootSequence();
         automatedControlEnabled = true;
       }
-    }/* else if(mOperatorController.dpadUp.isBeingPressed()) {
+    } /*else if(mOperatorController.dpadUp.isBeingPressed()) {
       if(!automatedControlEnabled) {
         mSuperstructure.autoRotationControl();
         automatedControlEnabled = true;
@@ -319,8 +325,10 @@ public class Robot extends TimedRobot {
         automatedControlEnabled = true;
       }
     } else {
+      if(automatedControlEnabled) {
+        mSuperstructure.clearRequests();
+      }
       automatedControlEnabled = false;
-
     }
 
 
@@ -334,14 +342,18 @@ public class Robot extends TimedRobot {
         Quick-spin Override: Back
     */
 
+
   
 
 
-    if(mOperatorController.xButton.isBeingPressed()) {
-      mDrive.setAlignToTarget();
-    } else {
-      mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+    if(!automatedControlEnabled) {
+      if(mOperatorController.xButton.isBeingPressed()) {
+        mDrive.setAlignToTarget();
+      } else {
+        mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+      }
     }
+    
     
     
 
@@ -376,13 +388,16 @@ public class Robot extends TimedRobot {
         Feign Ball - x (optional)
     */
 
-    if(mOperatorController.rightTrigger.isBeingPressed()) {
-      mShooter.setOpenLoop(0.6);
-    } else if(mOperatorController.bButton.isBeingPressed()) {
-      mShooter.setSpinUp(6500);
-    } else if(!automatedControlEnabled) {
-      mShooter.setOpenLoop(0.0);
+    if(!automatedControlEnabled) {
+      if(mOperatorController.rightTrigger.isBeingPressed()) {
+        mShooter.setOpenLoop(1.0);
+      } else if(mOperatorController.bButton.isBeingPressed()) {
+        mShooter.setHoldWhenReady(8700);
+      } else if(!automatedControlEnabled) {
+        mShooter.setOpenLoop(0.0);
+      }
     }
+    
     
 
     /* Spinner controls:

@@ -17,7 +17,8 @@ public class Ports {
 	public static final int DRIVE_RIGHT_MASTER_ID = 9;
 	public static final int DRIVE_RIGHT_SLAVE_ID = 10;
 
-	public static final int INTAKE_SOLENOID_PORT = 0;
+	public static final int INTAKE_LEFT_SOLENOID_PORT = 0;
+	public static final int INTAKE_RIGHT_SOLENOID_PORT = 0;
 	public static final int INTAKE_INNER_MOTOR_ID = 3;
 	public static final int INTAKE_OUTER_MOTOR_ID = 8;
 
@@ -31,10 +32,14 @@ public class Ports {
 	public static final int HOPPER_LEFT_BELT = 4;
 	public static final int HOPPER_RIGHT_BELT = 7;
 	public static final int HOPPER_INDEX_ID = 5;
+	public static final int HOPPER_INDEX_SENSOR_PORT = 0;
 
 	public static final int CANIFIER_ID = 0;
 	public static final int PCM_ID = 0;
 	public static final int PDP_ID = 0;
 	public static final int SPINNER_MOTOR_ID = 13;
 	public static final int SPINNER_SOLENOID_ID = 0;
+	
+
+	
 }

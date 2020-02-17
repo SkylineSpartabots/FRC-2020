@@ -67,15 +67,15 @@ public class Shooter extends Subsystem {
 
     private void configAndEnableMotorLimits(LazyTalonFX falcon) {
         PheonixUtil.checkError(falcon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
-                falcon.getName() + " failed to set voltage compensation", true);
+                falcon.getName() + " failed to set voltage compensation", false);
     
-        falcon.enableVoltageCompensation(true);
+        falcon.enableVoltageCompensation(false);
 
         PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(true, 35, 40, 1), Constants.kTimeOutMs),
-                falcon.getName() + " failed to set output current limit", true);
+                falcon.getName() + " failed to set output current limit", false);
 
         PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(true, 60, 60, 0), Constants.kTimeOutMs),
-                falcon.getName() + " failed to set input current limit", true);
+                falcon.getName() + " failed to set input current limit", false);
 
     }
 
@@ -83,10 +83,10 @@ public class Shooter extends Subsystem {
         falcon.enableVoltageCompensation(false);
 
         PheonixUtil.checkError(falcon.configStatorCurrentLimit(new StatorCurrentLimitConfiguration(false, 35, 40, 1), Constants.kTimeOutMs),
-                falcon.getName() + " failed to disable output current limit", true);
+                falcon.getName() + " failed to disable output current limit", false);
 
         PheonixUtil.checkError(falcon.configSupplyCurrentLimit(new SupplyCurrentLimitConfiguration(false, 60, 60, 0), Constants.kTimeOutMs),
-                falcon.getName() + " failed to disable input current limit", true);
+                falcon.getName() + " failed to disable input current limit", false);
     }
 
 
@@ -160,7 +160,7 @@ public class Shooter extends Subsystem {
     private static class PeriodicIO {
         //inputs
         public double velocity_in_ticks_per_100ms;
-        public double voltage;
+        public double output_percent;
 
         //outputs
         public double setpoint_rpm;
@@ -172,9 +172,9 @@ public class Shooter extends Subsystem {
     @Override
     public void readPeriodicInputs() {
         mPeriodicIO.velocity_in_ticks_per_100ms = mMasterShooter.getSelectedSensorVelocity(0);
-        mPeriodicIO.voltage = mMasterShooter.getMotorOutputVoltage(); 
-        SmartDashboard.putNumber("Velocity", mPeriodicIO.velocity_in_ticks_per_100ms * Constants.kRawVelocityToRpm);
-        SmartDashboard.putNumber("Voltage", mPeriodicIO.voltage);
+        mPeriodicIO.output_percent = mMasterShooter.getMotorOutputPercent(); 
+        SmartDashboard.putNumber("Velocity", mPeriodicIO.velocity_in_ticks_per_100ms / Constants.kRawVelocityToRpm);
+        SmartDashboard.putNumber("Voltage", mPeriodicIO.output_percent);
     }
 
 
@@ -234,7 +234,7 @@ public class Shooter extends Subsystem {
     }
 
     public synchronized boolean isShooterActive() {
-        return mPeriodicIO.voltage > 1.0;
+        return mPeriodicIO.output_percent > 1.0;
     }
 
     /**
@@ -269,6 +269,9 @@ public class Shooter extends Subsystem {
         }
      
         mMasterShooter.set(ControlMode.PercentOutput, percentOutput);
+        SmartDashboard.putNumber("Output of Shooter", mMasterShooter.getMotorOutputPercent());
+        SmartDashboard.putNumber("Stator Current Shooter", mMasterShooter.getStatorCurrent());
+        SmartDashboard.putNumber("Supply Current Shooter", mMasterShooter.getSupplyCurrent());
     }
 
     /**
@@ -279,7 +282,7 @@ public class Shooter extends Subsystem {
         if(mControlState != ShooterControlState.SPIN_UP) {
             configForSpinUp();
         }
-        mPeriodicIO.setpoint_rpm = setpointRpm / Constants.kRawVelocityToRpm;
+        mPeriodicIO.setpoint_rpm = setpointRpm * Constants.kRawVelocityToRpm;
     }
 
     /**
@@ -290,7 +293,7 @@ public class Shooter extends Subsystem {
         if(mControlState == ShooterControlState.SPIN_UP || mControlState == ShooterControlState.OPEN_LOOP) {
             configForHoldWhenReady();
         }
-        mPeriodicIO.setpoint_rpm = setpointRpm / Constants.kRawVelocityToRpm;
+        mPeriodicIO.setpoint_rpm = setpointRpm * Constants.kRawVelocityToRpm;
     }
 
     /**
@@ -317,8 +320,8 @@ public class Shooter extends Subsystem {
 
         mMasterShooter.configClosedloopRamp(Constants.kShooterRampRate, Constants.kTimeOutMs);
 
-        //disableMotorLimits(mMasterShooter);
-        //disableMotorLimits(mSlaveShooter);
+        disableMotorLimits(mMasterShooter);
+        disableMotorLimits(mSlaveShooter);
     }
 
     /**
@@ -351,8 +354,7 @@ public class Shooter extends Subsystem {
      * @return calculated feed forward output.
      */
     private double estimateKf() { 
-        final double output = 1023.0 / mPeriodicIO.voltage;
-        return (output/mPeriodicIO.velocity_in_ticks_per_100ms)/2.0; //divide by 2 for the two falcons on-board shooter
+        return (mPeriodicIO.output_percent * 1023.0) / mPeriodicIO.velocity_in_ticks_per_100ms;
     }
 
     /**
@@ -364,8 +366,6 @@ public class Shooter extends Subsystem {
      * you have a bit more wiggle room with error from target rpm
      */
     private void handleClosedLoop(double timestamp) {
-
-
         if(mControlState == ShooterControlState.SPIN_UP) {
             mMasterShooter.set(ControlMode.Velocity, mPeriodicIO.setpoint_rpm);
             resetHold();
@@ -426,7 +426,7 @@ public class Shooter extends Subsystem {
         
             @Override
             public void act() {
-                setSpinUp(velocity);
+                setHoldWhenReady(velocity);
             }
 
             @Override
@@ -441,7 +441,7 @@ public class Shooter extends Subsystem {
 
 			@Override
 			public void act() {
-				setSpinUp(velocity);
+				setHoldWhenReady(velocity);
 			}
         };
     }
