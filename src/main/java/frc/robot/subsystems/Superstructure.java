@@ -252,10 +252,6 @@ public class Superstructure extends Subsystem {
         replaceQueue(queue);
     }
 
-    public void alignToTargetRequestSuper() {
-        addFormostActiveRequest(mDrive.alignToTargetRequest());
-    }
-
 
     
 

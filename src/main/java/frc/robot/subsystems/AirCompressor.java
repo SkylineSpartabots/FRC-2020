@@ -9,7 +9,9 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
+import edu.wpi.first.wpilibj.Timer;
 import frc.lib.controllers.OverridesController;
+import frc.lib.util.TelemetryUtil;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
@@ -96,8 +98,13 @@ public class AirCompressor extends Subsystem {
 
     @Override
     public boolean checkSystem() {
+
+        System.out.println("//////// Testing Air Compressor ////////");
+        mCompressor.start();
+        Timer.delay(0.5);
+        mCompressor.stop();
         
-        return false;
+        return true;
     }
 
     @Override

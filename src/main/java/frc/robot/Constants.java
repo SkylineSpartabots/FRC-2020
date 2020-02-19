@@ -32,6 +32,8 @@ public class Constants {
 	public static final double kDriveMaxVelocity = 2; //4.75
 	public static final double kDriveMaxAcceleration = 2; //3.166
 
+	public static final double kDriveTurnKs = 0.05;
+
 	// Shooter	
 	public static final double kShooterRampRate = 0.2;
 	public static final int kShooterKfBufferSize = 20;

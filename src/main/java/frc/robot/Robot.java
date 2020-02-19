@@ -452,20 +452,26 @@ public class Robot extends TimedRobot {
     mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
     SmartDashboard.putNumber("Limelight Distance", mLimelight.getDistance());
   
+    if(mDriveController.xButton.wasActivated()) {
+      TelemetryUtil.print("X: " + mLimelight.getDistance() + " Y: " + mShootCalibrationVelocity, PrintStyle.LOGGER_PRO, true);
+    }
 
-    if(mOperatorController.aButton.isBeingPressed()) {
+    mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+
+
+    if(mDriveController.aButton.isBeingPressed()) {
       mShooter.setSpinUp(mShootCalibrationVelocity);
     } else {
       mShooter.setOpenLoop(0.0);
     }
 
-    if(mOperatorController.leftTrigger.isBeingPressed()) {
+    if(mDriveController.leftTrigger.isBeingPressed()) {
       mHopper.conformToState(HopperControlState.INDEX);
     } else {
       mHopper.conformToState(HopperControlState.OFF);
     }
 
-    if(mOperatorController.leftBumper.isBeingPressed()) {
+    if(mDriveController.leftBumper.isBeingPressed()) {
       mIntake.conformToState(IntakeControlState.INTAKE);
     } else {
       mIntake.conformToState(IntakeControlState.IDLE_WHILE_DEPLOYED);

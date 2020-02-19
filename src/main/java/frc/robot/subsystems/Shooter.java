@@ -226,6 +226,7 @@ public class Shooter extends Subsystem {
             shootFromDistance(mLimelight.getDistance());
         } else {
             //TODO: notify drivers that no vision target available
+            setSpinUp(Constants.kStandardShootVelocity);
         }
         
     }

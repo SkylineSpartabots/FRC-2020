@@ -54,10 +54,15 @@ public class Hopper extends Subsystem {
     private HopperControlState mCurrentState = HopperControlState.OFF;
     private boolean mStateChanged = false;
     private double mStateChangeTimestamp = 0.0;
+    
+    
     private double mIndexSensorBeganTimestamp = Double.POSITIVE_INFINITY;
     private double mLastSeenBallTimestamp = Double.POSITIVE_INFINITY;
     private double mStartUnjamTimstamp = Double.POSITIVE_INFINITY;
-    private boolean hasBall = false;
+    private boolean mIsUnjamming = false;
+
+    private boolean mHasBall = false;
+    private int mNumberOfBallsShot = 0;
 
     private void configureBeltMotor(LazyTalonSRX talon, InvertType inversion) {
         talon.setInverted(inversion);
@@ -110,7 +115,7 @@ public class Hopper extends Subsystem {
             @Override
             public void onStart(double timestamp) {
                 synchronized(Hopper.this) {
-                    hasBall = false;
+                    mHasBall = false;
                 }
             }
 
@@ -125,18 +130,19 @@ public class Hopper extends Subsystem {
                                 } else {
                                     if(timestamp - mIndexSensorBeganTimestamp > 0.05) {
                                         mLastSeenBallTimestamp = timestamp;
-                                        hasBall = true;
+                                        mHasBall = true;
                                     }
                                 }
                             } else if(!Double.isInfinite(mIndexSensorBeganTimestamp)) {
                                 mIndexSensorBeganTimestamp = Double.POSITIVE_INFINITY;
-                                hasBall = false;
+                                mHasBall = false;
+                                mNumberOfBallsShot++;
                             }
                         }
     
     
                         if(mCurrentState == HopperControlState.SENSORED_INTAKE) {
-                            if(hasBall) {
+                            if(mHasBall) {
                                 setIndexSpeed(0.0);
                                 setBeltSpeed(0.0, 0.0);
                             } else {
@@ -146,12 +152,17 @@ public class Hopper extends Subsystem {
                         } else if(mCurrentState == HopperControlState.SENSORED_INDEX) {
                             setIndexSpeed(mCurrentState.indexSpeed);
                             if(timestamp - mLastSeenBallTimestamp > Constants.kStartUnjamTimeThreshold) {
+                                if(!mIsUnjamming) {
+                                    mStartUnjamTimstamp = timestamp;
+                                    mIsUnjamming = true;
+                                }
                                 if(timestamp - mStartUnjamTimstamp > Constants.kStopUnjamTime) {
                                     mLastSeenBallTimestamp = timestamp;
                                 }
                                 setBeltSpeed(mCurrentState.leftBeltSpeed, -mCurrentState.rightBeltSpeed);
                             } else {
                                 setBeltSpeed(mCurrentState.leftBeltSpeed, mCurrentState.rightBeltSpeed);
+                                mIsUnjamming = false;
                             }
                         }
                     } else {
@@ -227,7 +238,7 @@ public class Hopper extends Subsystem {
     }
 
     public synchronized boolean hasIndexedBall() {
-        return hasBall;
+        return mHasBall;
     }
 
     private boolean rawBallDetected() {
@@ -241,6 +252,22 @@ public class Hopper extends Subsystem {
             @Override
             public void act() {
                 conformToState(desiredState);
+            }
+        };
+    }
+
+    public Request indexBallNumberRequest(double numberOfBalls) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                mNumberOfBallsShot = 0;
+                conformToState(HopperControlState.SENSORED_INTAKE);
+            }
+
+            @Override
+            public boolean isFinished() {
+                return mNumberOfBallsShot >= numberOfBalls;
             }
         };
     }
