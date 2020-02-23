@@ -174,6 +174,24 @@ public class Intake extends Subsystem {
         };
     }
 
+    public Request intakeForSecondsRequest(double seconds) {
+        return new Request() {
+
+            double startTime = 0;
+
+			@Override
+			public void act() {
+                startTime = Timer.getFPGATimestamp();
+                setState(IntakeControlState.INTAKE);
+            }
+            
+            @Override
+            public boolean isFinished() {
+                return (Timer.getFPGATimestamp() - startTime) >= seconds*1000;
+            }
+        };
+    }
+
     @Override
     public void stop() {
         conformToState(IntakeControlState.OFF);

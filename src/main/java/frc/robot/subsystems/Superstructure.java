@@ -32,7 +32,7 @@ public class Superstructure extends Subsystem {
     private static Superstructure mInstance = null;
 
     public static Superstructure getInstance() {
-        if(mInstance == null) {
+        if (mInstance == null) {
             mInstance = new Superstructure();
         }
         return mInstance;
@@ -40,10 +40,10 @@ public class Superstructure extends Subsystem {
 
     private Drive mDrive;
     private Shooter mShooter;
-   // private Spinner mSpinner = Spinner.getInstance();
+    // private Spinner mSpinner = Spinner.getInstance();
     private Hopper mHopper;
     private Intake mIntake;
-    //private Climb mClimb = Climb.getInstance();
+    // private Climb mClimb = Climb.getInstance();
 
     private RequestList activeRequests;
     private ArrayList<RequestList> queuedRequests;
@@ -52,7 +52,6 @@ public class Superstructure extends Subsystem {
     private boolean newRequests = false;
     private boolean activeRequestsCompleted = false;
     private boolean allRequestsCompleted = false;
-
 
     private Superstructure() {
         mDrive = Drive.getInstance();
@@ -141,8 +140,6 @@ public class Superstructure extends Subsystem {
         setQueuedRequests(lists);
     }
 
-     
-
     @Override
     public void registerEnabledLoops(ILooper mEnabledLooper) {
         mEnabledLooper.register(new Loop() {
@@ -151,7 +148,7 @@ public class Superstructure extends Subsystem {
             public void onStart(double timestamp) {
                 stop();
             }
-    
+
             @Override
             public void onLoop(double timestamp) {
                 synchronized (Superstructure.this) {
@@ -199,15 +196,15 @@ public class Superstructure extends Subsystem {
                             allRequestsCompleted = true;
                         }
                     }
-    
+
                 }
             }
-    
+
             @Override
             public void onStop(double timestamp) {
-                
+
             }
-    
+
         });
     }
 
@@ -220,63 +217,73 @@ public class Superstructure extends Subsystem {
         return new RequestList(Arrays.asList(mDrive.openLoopRequest(DriveSignal.BRAKE)), true);
     }
 
-
-    /*public void autoPositionControl() {
-        RequestList state = new RequestList(Arrays.asList(mDrive.turnRequest(180, 2), 
-            mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF),
-            mSpinner.openLopoRequest(0.0), mClimb.stateRequest(ClimbControlState.OFF)), true);
-        RequestList queue = new RequestList(Arrays.asList(driveUntilControlPanelRequest(), mDrive.openLoopRequest(new DriveSignal(0, 0)),
-            mSpinner.positionControlRequest()), false);
-        request(state);
-        replaceQueue(queue);
-    }
-
-
-    public void autoRotationControl() {
-        RequestList state = new RequestList(Arrays.asList(mDrive.turnRequest(180, 2), 
-            mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF),
-            mSpinner.openLopoRequest(0.0), mClimb.stateRequest(ClimbControlState.OFF)), true);
-        RequestList queue = new RequestList(Arrays.asList(driveUntilControlPanelRequest(), mDrive.openLoopRequest(new DriveSignal(0, 0)),
-            mSpinner.rotationControlRequest()), false);
-        request(state);
-        replaceQueue(queue);
-    }*/
+    /*
+     * public void autoPositionControl() { RequestList state = new
+     * RequestList(Arrays.asList(mDrive.turnRequest(180, 2),
+     * mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED),
+     * mHopper.stateRequest(HopperControlState.OFF), mSpinner.openLopoRequest(0.0),
+     * mClimb.stateRequest(ClimbControlState.OFF)), true); RequestList queue = new
+     * RequestList(Arrays.asList(driveUntilControlPanelRequest(),
+     * mDrive.openLoopRequest(new DriveSignal(0, 0)),
+     * mSpinner.positionControlRequest()), false); request(state);
+     * replaceQueue(queue); }
+     * 
+     * 
+     * public void autoRotationControl() { RequestList state = new
+     * RequestList(Arrays.asList(mDrive.turnRequest(180, 2),
+     * mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED),
+     * mHopper.stateRequest(HopperControlState.OFF), mSpinner.openLopoRequest(0.0),
+     * mClimb.stateRequest(ClimbControlState.OFF)), true); RequestList queue = new
+     * RequestList(Arrays.asList(driveUntilControlPanelRequest(),
+     * mDrive.openLoopRequest(new DriveSignal(0, 0)),
+     * mSpinner.rotationControlRequest()), false); request(state);
+     * replaceQueue(queue); }
+     */
 
     public void autoShootSequence() {
         TelemetryUtil.print("Running auto sequence", PrintStyle.ERROR, true);
-        RequestList state = new RequestList(Arrays.asList(mDrive.alignToTargetRequest(), 
-            mShooter.setVelocityAndWaitRequest(Constants.kStandardShootVelocity),
-            mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF)), true);
-        RequestList queue = new RequestList(Arrays.asList(/*mShooter.setVelocityFromVisionRequest(),*/ mHopper.stateRequest(HopperControlState.INDEX)), false);
+        RequestList state = new RequestList(Arrays.asList(
+                mDrive.alignToTargetRequest(),
+                mShooter.setVelocityAndWaitRequest(Constants.kStandardShootVelocity),
+                mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED),
+                mHopper.stateRequest(HopperControlState.OFF)), 
+                true);
+        RequestList queue = new RequestList(Arrays.asList(mHopper.stateRequest(HopperControlState.INDEX)),false);
         request(state);
         replaceQueue(queue);
     }
 
+    public void getDistAndShootBalls(int numOfBalls) {
+        TelemetryUtil.print("NOT ALIGNING, but still shooting", PrintStyle.ERROR, true);
+        RequestList state = new RequestList(Arrays.asList(
+                mShooter.setVelocityFromVisionRequest(),
+                mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED),
+                mHopper.stateRequest(HopperControlState.OFF)), 
+                true);
+        request(state);
+        replaceQueue(mHopper.indexBallNumberRequest((double)numOfBalls));
+    }
 
-    
+    public void intakeForSecondsThenStop(double seconds) {
+        TelemetryUtil.print("Intaking for " + seconds + " seconds.", PrintStyle.ERROR, true);
+        request(mIntake.intakeForSecondsRequest(seconds));
+        replaceQueue(mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED));
+    }
 
-    /*public Request driveUntilControlPanelRequest() {
-        Request request = new Request(){
-        
-            @Override
-            public void act() {
-                mDrive.setOpenLoop(new DriveSignal(0.3, 0.3));
-            }
-
-            @Override
-            public boolean isFinished() {
-                return mSpinner.seesControlPanel();
-            }
-        };
-
-        request.withPrerequisite(mSpinner.deployedPrerequisite);
-
-        return request;
-    }*/
-
-
-
-
+    /*
+     * public Request driveUntilControlPanelRequest() { Request request = new
+     * Request(){
+     * 
+     * @Override public void act() { mDrive.setOpenLoop(new DriveSignal(0.3, 0.3));
+     * }
+     * 
+     * @Override public boolean isFinished() { return mSpinner.seesControlPanel(); }
+     * };
+     * 
+     * request.withPrerequisite(mSpinner.deployedPrerequisite);
+     * 
+     * return request; }
+     */
 
     @Override
     public void stop() {
@@ -293,9 +300,8 @@ public class Superstructure extends Subsystem {
 
     }
 
-	public boolean isAtDesiredState() {
-		return false;
-	}
-
+    public boolean isAtDesiredState() {
+        return false;
+    }
 
 }

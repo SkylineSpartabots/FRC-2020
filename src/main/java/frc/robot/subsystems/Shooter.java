@@ -225,8 +225,8 @@ public class Shooter extends Subsystem {
         if(mLimelight.seesTarget()) {
             shootFromDistance(mLimelight.getDistance());
         } else {
-            //TODO: notify drivers that no vision target available
-            setSpinUp(Constants.kStandardShootVelocity);
+            TelemetryUtil.print("Could not find distance from Limelight", PrintStyle.ERROR, true);
+            setHoldWhenReady(Constants.kStandardShootVelocity);
         }
         
     }

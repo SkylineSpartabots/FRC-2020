@@ -83,12 +83,24 @@ public class PathGenerator {
 
     private static Pose2d mTrenchRunShootPose = new Pose2d(new Translation2d(0.0, 0.0), Rotation2d.fromDegrees(0.0));
 
+    private static Pose2d mOpponentTrenchPose = new Pose2d(new Translation2d(0,0), new Rotation2d(0.0)); //X: 259.627 Y: -296.839 TanX: 46.006 TanY: 0
+
+    private static Pose2d mMidFieldPose = new Pose2d(new Translation2d(0,0), new Rotation2d(0.0)); //X: 169.995 Y: -150.89 TanX: -168.952 TanY: 59.49
+
+    private static Pose2d mMidRightBalls = new Pose2d(new Translation2d(0,0), new Rotation2d(0.0)); //X: 246.142 Y: -119.162 TanX: 62.663 TanY: -163.4
+
+    private static Pose2d mMidTopShootPos = new Pose2d(new Translation2d(0,0), new Rotation2d(0.0)); //X: 161.27 Y: -76.329 TanX: -111.048 TanY: -11.898
     
 
 
     public class PathSet {
 
         public final Trajectory startPositionOneToTrenchEnd;
+        public final Trajectory startPositionThreeToMidField;
+        public final Trajectory startPositionThreeToOpponentTrench;
+        public final Trajectory opponentTrenchToMidField;
+        public final Trajectory startPositionTwoToMidRight;
+        public final Trajectory midRightToMidTopShootPos;
         //public final Trajectory startPositionTwoToTrenchEnd;
         //public final Trajectory startPositionThreeToOpponentBalls;
         //public final Trajectory opponentBallsToShootLocation;
@@ -97,6 +109,11 @@ public class PathGenerator {
 
         private PathSet() {
             startPositionOneToTrenchEnd = getStartPositionOneToTrenchEnd();
+            startPositionThreeToMidField = getStartPositionThreeToMidField();
+            startPositionThreeToOpponentTrench = getStartPositionThreeToOpponentTrench();
+            opponentTrenchToMidField = getOpponentTrenchToMidField();
+            startPositionTwoToMidRight = getStartPositionTwoToMidRight();
+            midRightToMidTopShootPos = getMidRightToShootPosition();
             //startPositionTwoToTrenchEnd = getStartPositionTwoToTrenchEnd();
 
             //startPositionThreeToOpponentBalls = getStartPositionThreeToOpponentBalls();
@@ -117,6 +134,40 @@ public class PathGenerator {
         return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, false);
     }
 
+    private Trajectory getStartPositionThreeToMidField() {
+        List<Translation2d> innerWaypoints = new ArrayList<>();
+        innerWaypoints.add(new Translation2d(0, 0));
+
+        return generatePath(mAutoStartingPose, innerWaypoints, mMidFieldPose, false);
+    }
+
+    private Trajectory getStartPositionThreeToOpponentTrench() {
+        List<Translation2d> innerWaypoints = new ArrayList<>();
+        innerWaypoints.add(new Translation2d(0, 0));
+
+        return generatePath(mAutoStartingPose, innerWaypoints, mOpponentTrenchPose, true);
+    }
+
+    private Trajectory getOpponentTrenchToMidField() {
+        List<Translation2d> innerWaypoints = new ArrayList<>();
+        innerWaypoints.add(new Translation2d(0, 0));
+
+        return generatePath(mOpponentTrenchPose, innerWaypoints, mMidFieldPose, false);
+    }
+
+    private Trajectory getStartPositionTwoToMidRight() {
+        List<Translation2d> innerWaypoints = new ArrayList<>();
+        innerWaypoints.add(new Translation2d(0, 0));
+
+        return generatePath(mAutoStartingPose, innerWaypoints, mMidRightBalls, true);
+    }
+
+    private Trajectory getMidRightToShootPosition() {
+        List<Translation2d> innerWaypoints = new ArrayList<>();
+        innerWaypoints.add(new Translation2d(0, 0));
+
+        return generatePath(mMidRightBalls, innerWaypoints, mMidTopShootPos, false);
+    }
 
     private Trajectory getStartPositionTwoToTrenchEnd() {
         List<Translation2d> innerWaypoints = new ArrayList<>();
