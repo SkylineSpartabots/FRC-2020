@@ -118,8 +118,6 @@ public class Climb extends Subsystem {
             @Override
             public void onLoop(double timestamp) {
                 synchronized(Climb.this) {
-                    System.out.println("Climb Encoder: " + mClimbHookEncoder.getDistance());
-
                     if(mCurrentState == ClimbControlState.RAISE_HOOK) {
                         if(mClimbHookEncoder.getDistance() > Constants.kClimbMaxHeight) {
                             mHookSlideMotor.set(ControlMode.PercentOutput, 0.0);

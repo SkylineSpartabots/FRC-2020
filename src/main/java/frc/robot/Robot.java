@@ -381,10 +381,10 @@ public class Robot extends TimedRobot {
       if(mOperatorController.backButton.isBeingPressed()) {
         mShooter.shootAtSetRpm(4450);
       } else if(mOperatorController.getTriggerAxis(Hand.kLeft) > 0.1) {
-        mShooter.setOpenLoop(Util.limit(mOperatorController.getTriggerAxis(Hand.kLeft), 0.3, 0.65));
+        mShooter.setOpenLoop(Util.limit(mOperatorController.getTriggerAxis(Hand.kLeft)-0.45, 0.2, 0.5));
       } else {
         if(!shooterClimbShutoff) {
-          mShooter.setOpenLoop(0.05);
+          mShooter.setOpenLoop(0.2);
         } else {
           mShooter.setOpenLoop(0.0);
         }

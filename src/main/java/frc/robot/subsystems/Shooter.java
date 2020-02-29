@@ -229,7 +229,7 @@ public class Shooter extends Subsystem {
 
     private double getRpmFromDistance(double x) {
         if(mLimelight.getDistance() < 180) {
-            return 4400;
+            return 4500;
         } else {
             return 4450;
         }

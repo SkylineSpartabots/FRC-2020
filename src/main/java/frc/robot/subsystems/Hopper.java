@@ -177,7 +177,7 @@ public class Hopper extends Subsystem {
         });
     }
 
-    public enum HopperControlState { //0.8, 0.5, 0.75
+    public enum HopperControlState { 
         OFF(0.0, 0.0, 0.0), INDEX(0.6 , 0.5, 0.75), SENSORED_INDEX(0.5, 0.5, 0.75), SENSORED_INTAKE(0.2, 0.2, 0.2),
         SLOW_INDEX(0.4, 0.6, 0.6), REVERSE(-0.3, -0.5, -0.5), SMART_SENSORED_INDEX(0.8, 0.5, 0.75);
 
