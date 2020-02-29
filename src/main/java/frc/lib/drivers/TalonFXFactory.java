@@ -66,12 +66,12 @@ public class TalonFXFactory {
     private static Configuration kSlaveConfiguration = new Configuration();
 
     static {
-        kSlaveConfiguration.CONTROL_FRAME_PERIOD_MS = 5;
-        kSlaveConfiguration.MOTION_CONTROL_FRAME_PERIOD_MS = 100;
-        kSlaveConfiguration.GENERAL_STATUS_FRAME_RATE_MS = 5;
-        kSlaveConfiguration.FEEDBACK_STATUS_FRAME_RATE_MS = 100;
+        kSlaveConfiguration.CONTROL_FRAME_PERIOD_MS = 25;
+        kSlaveConfiguration.MOTION_CONTROL_FRAME_PERIOD_MS = 1000;
+        kSlaveConfiguration.GENERAL_STATUS_FRAME_RATE_MS = 35;
+        kSlaveConfiguration.FEEDBACK_STATUS_FRAME_RATE_MS = 1000;
         kSlaveConfiguration.QUAD_ENCODER_STATUS_FRAME_RATE_MS = 1000;
-        kSlaveConfiguration.ANALOG_TEMP_VBAT_STATUS_FRAME_RATE_MS = 1000;
+        kSlaveConfiguration.ANALOG_TEMP_VBAT_STATUS_FRAME_RATE_MS = 5000;
         kSlaveConfiguration.PULSE_WIDTH_STATUS_FRAME_RATE_MS = 1000;
         kSlaveConfiguration.DEVICE = TalonFXFeedbackDevice.None;
     }

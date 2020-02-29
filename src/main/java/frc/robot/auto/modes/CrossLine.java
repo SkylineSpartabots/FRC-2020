@@ -5,32 +5,18 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.auto.actions;
+package frc.robot.auto.modes;
+
+import frc.robot.auto.AutoModeEndedException;
+import frc.robot.auto.actions.DriveOpenLoopAction;
 
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
+public class CrossLine extends AutoModeBase {
 
-    private LambdaSupplier mF;
-
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
+    @Override
+    protected void routine() throws AutoModeEndedException {
+        runAction(new DriveOpenLoopAction(-0.3, -0.3, 1.5));
     }
-
-    @Override
-    public void start() {
-        mF.f();
-    }
-
-    @Override
-    public void update() {}
-
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
-
-    @Override
-    public void done() {}
 }

@@ -11,6 +11,8 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
+import frc.robot.loops.ILooper;
+import frc.robot.loops.Loop;
 
 /**
  * Add your docs here.
@@ -29,13 +31,14 @@ public class Limelight extends Subsystem {
 
     private Limelight() {
         mNetworkTable = NetworkTableInstance.getDefault().getTable("limelight");
-        setLed(LedMode.ON);
+        mNetworkTable.getEntry("pipeline").setNumber(0);
+        mNetworkTable.getEntry("stream").setNumber(0);
+        mNetworkTable.getEntry("snapshot").setNumber(0);
+        setLed(LedMode.OFF);
     }
 
     public static class PeriodicIO {
         //Inputs
-        public double givenLedMode;
-        public int givenCamMode;
         public double xOffset;
         public double yOffset;
         public double area;
@@ -43,41 +46,36 @@ public class Limelight extends Subsystem {
         //Outputs
         public int ledMode = 1;
         public int camMode = 0;
-        public int pipeline = 0;
-        public int stream = 2;
-        public int snapshot = 0;
     }
 
     private PeriodicIO mPeriodicIO = new PeriodicIO();
     private boolean mOutputsHaveChanged = true;
-    private boolean mSeesTarget = false;
 
+    private boolean mSeesTarget = false;
+ 
     @Override
     public synchronized void readPeriodicInputs() {
-        mPeriodicIO.givenLedMode = (int) mNetworkTable.getEntry("ledMode").getDouble(1.0);
-        mPeriodicIO.givenCamMode = (int) mNetworkTable.getEntry("camMode").getDouble(0.0);
-        mPeriodicIO.xOffset = mNetworkTable.getEntry("tx").getDouble(0.0);
-        mPeriodicIO.yOffset = mNetworkTable.getEntry("ty").getDouble(0.0);
-        mPeriodicIO.area = mNetworkTable.getEntry("ta").getDouble(0.0);
-        mSeesTarget = mNetworkTable.getEntry("tv").getDouble(0) == 1.0;
+        if(mPeriodicIO.camMode == 0) {
+            mPeriodicIO.xOffset = mNetworkTable.getEntry("tx").getDouble(0.0);
+            mPeriodicIO.yOffset = mNetworkTable.getEntry("ty").getDouble(0.0);
+            mSeesTarget = mNetworkTable.getEntry("tv").getDouble(0) == 1.0;
+        } else {
+            mPeriodicIO.xOffset = 0.0;
+            mPeriodicIO.yOffset = 0.0;
+            mSeesTarget = false;
+        }
+        
     }
 
     @Override
-    public synchronized void writePeriodicOutputs() {
-        if (mPeriodicIO.givenLedMode != mPeriodicIO.ledMode ||
-                mPeriodicIO.givenCamMode != mPeriodicIO.camMode) {
-            mOutputsHaveChanged = true;
-        }
+    public synchronized void writePeriodicOutputs() {   
         if (mOutputsHaveChanged) {
             mNetworkTable.getEntry("ledMode").setNumber(mPeriodicIO.ledMode);
             mNetworkTable.getEntry("camMode").setNumber(mPeriodicIO.camMode);
-            mNetworkTable.getEntry("pipeline").setNumber(mPeriodicIO.pipeline);
-            mNetworkTable.getEntry("stream").setNumber(mPeriodicIO.stream);
-            mNetworkTable.getEntry("snapshot").setNumber(mPeriodicIO.snapshot);
-
             mOutputsHaveChanged = false;
         }
     }
+
 
     @Override
     public synchronized void outputTelemetry() {
@@ -98,9 +96,6 @@ public class Limelight extends Subsystem {
         return mPeriodicIO.xOffset;
     }
 
-    public synchronized double getTargetArea() {
-        return mPeriodicIO.area;
-    }
 
     public synchronized void setLed(LedMode mode) {
         if(mode.ordinal() != mPeriodicIO.ledMode) {
@@ -110,27 +105,25 @@ public class Limelight extends Subsystem {
     }
 
     public synchronized void setDriveMode() {
-        mPeriodicIO.camMode = 1;
+        if(mPeriodicIO.camMode != 1) {
+            mPeriodicIO.camMode = 1;
+            mOutputsHaveChanged = true;
+        }
+        setLed(LedMode.OFF);
+        
     }
 
     public synchronized void setVisionMode() {
-        mPeriodicIO.camMode = 0;
-    }
-
-    public synchronized void setPipeline(int pipeline) {
-        if(pipeline != mPeriodicIO.pipeline) {
-            //TODO: RobotState.getInstance().resetVision();
-            mPeriodicIO.pipeline = pipeline;
+        if(mPeriodicIO.camMode != 0) {
+            mPeriodicIO.camMode = 0;
             mOutputsHaveChanged = true;
         }
+        setLed(LedMode.ON);
     }
+
 
     public synchronized void triggerOutputs() {
         mOutputsHaveChanged = true;
-    }
-
-    public synchronized int getPipeline() {
-        return mPeriodicIO.pipeline;
     }
 
     public synchronized boolean seesTarget() {
@@ -138,8 +131,11 @@ public class Limelight extends Subsystem {
     }
 
     public synchronized double getDistance() {
-        return (Constants.kTargetHeight - Constants.kLensHeight) / 
+        double x = (Constants.kTargetHeight - Constants.kLensHeight) / 
             Math.tan(Math.toRadians(Constants.kLensHorizontalAngle + mPeriodicIO.yOffset));
+        x /= Math.cos(Math.toRadians(Math.abs(mPeriodicIO.xOffset)));
+        return x-50.0;
+
     }
 
     @Override

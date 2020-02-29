@@ -23,11 +23,12 @@ import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.Util;
 import frc.lib.util.TelemetryUtil.PrintStyle;
-import frc.robot.auto.ModeExecutor;
-import frc.robot.auto.ModeSelector;
+import frc.robot.auto.AutoModeExecutor;
 import frc.robot.auto.modes.AutoModeBase;
+import frc.robot.auto.modes.CrossLine;
 import frc.robot.loops.Looper;
 import frc.robot.paths.PathGenerator;
+import frc.robot.subsystems.AirCompressor;
 import frc.robot.subsystems.Climb;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Hopper;
@@ -62,19 +63,20 @@ public class Robot extends TimedRobot {
   private final Intake mIntake = Intake.getInstance();
   private final Hopper mHopper = Hopper.getInstance();
   //private final Spinner mSpinner = Spinner.getInstance();
-  //private final Climb mClimb = Climb.getInstance();
+  private final Climb mClimb = Climb.getInstance();
   //private final LED mLED = LED.getInstance();
   private final Shooter mShooter = Shooter.getInstance();
   private final Drive mDrive = Drive.getInstance();
+  private final AirCompressor mAirCompressor = AirCompressor.getInstance();
   private final Superstructure mSuperstructure = Superstructure.getInstance();
 
   private Limelight mLimelight = Limelight.getInstance();
 
 
   private final PathGenerator mPathGenerator = PathGenerator.getInstance();
-  private ModeSelector mModeSelector = new ModeSelector();
-  private ModeExecutor mAutoModeExecutor;
-  private ModeExecutor mTestModeExecutor;
+  
+  private AutoModeSelector mAutoModeSelector = new AutoModeSelector();
+  private AutoModeExecutor mAutoModeExecutor;
 
 
 
@@ -87,7 +89,6 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     try {
       CrashTracker.logRobotInit();
-
     
       mSubsystemManager.setSubsystems(
         mDrive,
@@ -95,7 +96,8 @@ public class Robot extends TimedRobot {
         mIntake,
         mHopper,
         mShooter,
-        //mClimb,
+        mClimb,
+        mAirCompressor,
         mSuperstructure
       );
 
@@ -106,6 +108,7 @@ public class Robot extends TimedRobot {
 
       
       mPathGenerator.generatePaths();
+      mAutoModeSelector.updateModeCreator();
       
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -130,23 +133,21 @@ public class Robot extends TimedRobot {
     try {
       CrashTracker.logDisabledInit();
       mEnabledLooper.stop();
-      mDisabledLooper.start();
-
-      mLimelight.setDriveMode();
+      
 
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
       }
 
-      if(mTestModeExecutor != null) {
-        mTestModeExecutor.stop();
-      }
+      mAutoModeSelector.reset();
+      mAutoModeSelector.updateModeCreator();
+      mAutoModeExecutor = new AutoModeExecutor();
+    
 
+      mDisabledLooper.start();
 
-      mModeSelector.reset();
-      mModeSelector.updateModeSelection();
-      mAutoModeExecutor = new ModeExecutor();
-      mTestModeExecutor = new ModeExecutor();
+      mLimelight.setLed(LedMode.OFF);
+      mDrive.setBrakeMode(false);
 
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -158,21 +159,15 @@ public class Robot extends TimedRobot {
   public void disabledPeriodic() {
     try {
 
-      mDrive.setBrakeMode(false);
-      mModeSelector.updateModeSelection();
+      mAutoModeSelector.updateModeCreator();
 
-      Optional<AutoModeBase> autoMode = mModeSelector.getAutoMode();
-      Optional<AutoModeBase> testMode = mModeSelector.getTestMode();
-
-      if(autoMode.isPresent() && autoMode.get() != mAutoModeExecutor.getAutoMode()) {
+      Optional<AutoModeBase> autoMode = mAutoModeSelector.getAutoMode();
+      if (autoMode.isPresent() && autoMode.get() != mAutoModeExecutor.getAutoMode()) {
         System.out.println("Set auto mode to: " + autoMode.get().getClass().toString());
         mAutoModeExecutor.setAutoMode(autoMode.get());
       }
 
-      if(testMode.isPresent() && testMode.get() != mTestModeExecutor.getAutoMode()) {
-        System.out.println("Set test mode to: " + testMode.get().getClass().toString());
-        mTestModeExecutor.setAutoMode(testMode.get());
-      }
+  
 
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -186,16 +181,16 @@ public class Robot extends TimedRobot {
       CrashTracker.logAutoInit();
       mDisabledLooper.stop();
 
-      mTestModeExecutor.stop();
       //Zero sensors and robot state accordingly
-
       mDrive.zeroSensors();
+      mSubsystemManager.zeroSensors();
       mDrive.resetOdometry(new Pose2d(new Translation2d(0.0, 0.0), mDrive.getHeading()));
       
-      mAutoModeExecutor.start();
-
       mEnabledLooper.start();
 
+      mAutoModeExecutor.start();
+
+      mLimelight.setVisionMode();
 
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -221,17 +216,16 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
     try {
       mDisabledLooper.stop();
-      if(mTestModeExecutor != null) {
-        mTestModeExecutor.stop();
-      }
 
       if(mAutoModeExecutor != null) {
         mAutoModeExecutor.stop();
       }
-      mLimelight.setLed(LedMode.ON);
 
-      mSubsystemManager.zeroSensors();
-      mDrive.resetOdometry(new Pose2d(new Translation2d(0.0, 0.0), mDrive.getHeading()));
+      mLimelight.setDriveMode();
+      
+      shooterClimbShutoff = false;
+      deployIntake = true;
+      automatedControlEnabled = false;
 
       mEnabledLooper.start();
     } catch (Throwable t) {
@@ -242,6 +236,12 @@ public class Robot extends TimedRobot {
   /**
    * This function is called periodically during operator control.
    */
+
+  private boolean deployIntake;
+  private boolean automatedControlEnabled;
+  private boolean shooterClimbShutoff;
+
+
   @Override
   public void teleopPeriodic() {
     try {
@@ -249,8 +249,12 @@ public class Robot extends TimedRobot {
       mOperatorController.update();
       mOverridesController.update();
 
-      //driverControl();
-      shooterCalibration();
+
+      
+      driverControl();
+
+      //SmartDashboard.putNumber("Shooter Calibration Target RPM", 4500);
+      //shooterCalibration();
     
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -291,88 +295,76 @@ public class Robot extends TimedRobot {
 
 
 
-  private boolean deployIntake = true;
-  private boolean automatedControlEnabled = false;
-
   public void driverControl() {
 
+    SmartDashboard.putBoolean("Automated Control", automatedControlEnabled);
+    SmartDashboard.putBoolean("Shooter Is Idling?", !shooterClimbShutoff);
 
     /* Complete automation controls:
-        Start rotation control - Dpad up
-        Start position control - Dpad down
         Start auto shoot sequence - B
+        Auto Align to target - right bumper
     */
-
-   if(mOperatorController.dpadUp.isBeingPressed()) {
+   if(mOperatorController.bButton.isBeingPressed()) {
       if(!automatedControlEnabled) {
-        TelemetryUtil.print("Auto", PrintStyle.ERROR, false);
+        mLimelight.setVisionMode();
         mSuperstructure.autoShootSequence();
-        automatedControlEnabled = true;
-      }
-    } /*else if(mOperatorController.dpadUp.isBeingPressed()) {
-      if(!automatedControlEnabled) {
-        mSuperstructure.autoRotationControl();
-        automatedControlEnabled = true;
-      }
-    } else if(mOperatorController.dpadDown.isBeingPressed()) {
-      if(!automatedControlEnabled) {
-        mSuperstructure.autoPositionControl();
-        automatedControlEnabled = true;
-      }
-    } */else if(mOperatorController.rightBumper.isBeingPressed()) {
-      if(!automatedControlEnabled) {
-        mDrive.setAlignToTarget();
+        mDriveController.rumble(0.6);
+        mOperatorController.rumble(0.6);
         automatedControlEnabled = true;
       }
     } else {
       if(automatedControlEnabled) {
         mSuperstructure.clearRequests();
+        mOperatorController.rumble(0.0);
+        mOperatorController.rumble(0.0);
       }
       automatedControlEnabled = false;
     }
 
 
-    
-
-
-
-
     /* Drive Controls:
-        Curvature Drive: Left joy y, right joy x
-        Quick-spin Override: Back
+        Arcade Drive - Left joy y, right joy x (DC)
+        Auto-align to targt - Right bumper (OC)
     */
-
-
-  
-
-
     if(!automatedControlEnabled) {
-      if(mOperatorController.xButton.isBeingPressed()) {
+      if(mOperatorController.rightBumper.isBeingPressed()) {
+        mLimelight.setVisionMode();
         mDrive.setAlignToTarget();
+        mDriveController.rumble(0.2);
+        mOperatorController.rumble(0.2);
       } else {
         mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+        mLimelight.setDriveMode();
+        mDriveController.rumble(0.0);
+        mOperatorController.rumble(0.0);
       }
     }
-    
-    
-    
 
-   /* Intake Controls:
-        Intake On - Left Bumper
+
+   /* Intake Controls
+        Intake On with Auto Index - Left Bumper
+        Intake On - A 
         Retract Intake - Y
+  
     */
-
     if(!automatedControlEnabled) {
       if(mOperatorController.yButton.wasActivated()) {
         deployIntake = false;
       }
   
-      if(mOperatorController.leftBumper.isBeingPressed()) {
+      if(mOperatorController.leftBumper.isBeingPressed() 
+        || mOperatorController.aButton.isBeingPressed()) {
+
         mIntake.conformToState(IntakeControlState.INTAKE);
         deployIntake = true;
+
       } else {
         if(deployIntake) {
-          mIntake.conformToState(IntakeControlState.STORE);
+          if(mOperatorController.xButton.isBeingPressed()) {
+            mIntake.conformToState(IntakeControlState.OUTAKE);
+          } else {
+            mIntake.conformToState(IntakeControlState.STORE);
+          }
         } else {
           mIntake.conformToState(IntakeControlState.OFF);
         }
@@ -383,64 +375,68 @@ public class Robot extends TimedRobot {
     /* Shooter controls:
         Start shooter ramp - Left paddle
         Start and continue auto shooter sequence - B
-        Auto-align to shooter target - right bumper
         Open loop shooter control - Right trigger
-        Feign Ball - x (optional)
     */
-
-
-    if(mOperatorController.rightTrigger.isBeingPressed()) {
-      mShooter.setOpenLoop(0.6);
-    } else if(mOperatorController.bButton.isBeingPressed()) {
-      mShooter.setSpinUp(8000);
-    } else if(mOperatorController.yButton.isBeingPressed()) {
-      mShooter.shootFromVisionDistance();
-    } else if(!automatedControlEnabled) {
-      mShooter.setOpenLoop(0.0);
+    if(!automatedControlEnabled) {
+      if(mOperatorController.backButton.isBeingPressed()) {
+        mShooter.shootAtSetRpm(4450);
+      } else if(mOperatorController.getTriggerAxis(Hand.kLeft) > 0.1) {
+        mShooter.setOpenLoop(Util.limit(mOperatorController.getTriggerAxis(Hand.kLeft), 0.3, 0.65));
+      } else {
+        if(!shooterClimbShutoff) {
+          mShooter.setOpenLoop(0.05);
+        } else {
+          mShooter.setOpenLoop(0.0);
+        }
+      }
     }
- 
     
-    
-
-    /* Spinner controls:
-        Start rotation control - Dpad up
-        Start position control - Dpad down
-        Retract spinner - Left d pad
-        Open loop on spinner - right joy x
-    */
-
-
-
-
 
     /* Hopper Control:
-        Open loop hopper control - left trigger
+        sensored index - right trigger
     */
-
     if(!automatedControlEnabled) {
-      if(mOperatorController.leftTrigger.isBeingPressed()) {
-        mHopper.conformToState(HopperControlState.INDEX);
+      if(mOperatorController.rightTrigger.isBeingPressed()) {
+        mHopper.conformToState(HopperControlState.SENSORED_INDEX);
+      } else if(mOperatorController.aButton.isBeingPressed()) {
+        mHopper.conformToState(HopperControlState.OFF);
+      } else if(mOperatorController.leftBumper.isBeingPressed()){
+        mHopper.conformToState(HopperControlState.SENSORED_INTAKE);
       } else {
         mHopper.conformToState(HopperControlState.OFF);
       }
     }
 
 
-
-
     /* Climb Control:
-        Deploy climb: back
-        Retract climb: start
+        Deploy climb: dpad up
+        Retract climb: dpad down
+        Winch up: dpad right
     */
-    /*if(mOperatorController.backButton.isBeingPressed()) {
+    if(mOperatorController.dpadUp.isBeingPressed()) {
+      shooterClimbShutoff = true;
       mClimb.conformToState(ClimbControlState.RAISE_HOOK);
-    } else if(mOperatorController.startButton.isBeingPressed()) {
-      mClimb.conformToState(ClimbControlState.AUTO_WINCH_UP);
+    } else if(mOperatorController.dpadDown.isBeingPressed()) {
+      mClimb.conformToState(ClimbControlState.LOWER_HOOK);
+    } else if(mOperatorController.dpadRight.isBeingPressed()) {
+      mClimb.conformToState(ClimbControlState.WINCH_UP);
     } else {
       mClimb.conformToState(ClimbControlState.OFF);
-    }*/
+    }
 
 
+    if(mOperatorController.startButton.isBeingPressed()) {
+      shooterClimbShutoff = false;
+    }
+
+
+    
+    /* Spinner controls:
+        Start rotation control - Dpad up
+        Start position control - Dpad down
+        Retract spinner - Left d pad
+        Open loop on spinner - right joy x
+    */
     
     
   
@@ -449,6 +445,7 @@ public class Robot extends TimedRobot {
 
   private double mShootCalibrationVelocity = 0.0;
   public void shooterCalibration() {
+    mLimelight.setVisionMode();
     mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
     SmartDashboard.putNumber("Limelight Distance", mLimelight.getDistance());
   
@@ -456,26 +453,34 @@ public class Robot extends TimedRobot {
       TelemetryUtil.print("X: " + mLimelight.getDistance() + " Y: " + mShootCalibrationVelocity, PrintStyle.LOGGER_PRO, true);
     }
 
-    mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
-
-
     if(mDriveController.aButton.isBeingPressed()) {
-      mShooter.setSpinUp(mShootCalibrationVelocity);
+      mShooter.shootAtSetRpm(mShootCalibrationVelocity);
     } else {
       mShooter.setOpenLoop(0.0);
     }
 
+
+
+    if(mDriveController.rightBumper.isBeingPressed()) {
+      mDrive.setAlignToTarget();
+    } else {
+      mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
+    }
+
+
+   
+
     if(mDriveController.leftTrigger.isBeingPressed()) {
-      mHopper.conformToState(HopperControlState.INDEX);
+      mHopper.conformToState(HopperControlState.SENSORED_INDEX);
     } else {
       mHopper.conformToState(HopperControlState.OFF);
     }
 
-    if(mDriveController.leftBumper.isBeingPressed()) {
+    /*if(mDriveController.leftBumper.isBeingPressed()) {
       mIntake.conformToState(IntakeControlState.INTAKE);
     } else {
       mIntake.conformToState(IntakeControlState.IDLE_WHILE_DEPLOYED);
-    }
+    }*/
   }
 
  

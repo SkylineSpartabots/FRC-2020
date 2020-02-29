@@ -7,9 +7,8 @@
 
 package frc.robot.auto.modes;
 
-import frc.lib.util.TelemetryUtil;
-import frc.lib.util.TelemetryUtil.PrintStyle;
-import frc.robot.auto.ModeEndedException;
+import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.auto.AutoModeEndedException;
 import frc.robot.auto.actions.Action;
 import frc.robot.paths.PathGenerator;
 
@@ -20,15 +19,15 @@ public abstract class AutoModeBase {
 
     protected static PathGenerator.PathSet paths = PathGenerator.getInstance().getPathSet();
 
-    protected abstract void routine() throws ModeEndedException;
+    protected abstract void routine() throws AutoModeEndedException;
 
     public void run() {
         mActive = true;
 
         try {
             routine();
-        } catch (ModeEndedException e) {
-            TelemetryUtil.print("Auto mode ended early", PrintStyle.ERROR, false);
+        } catch (AutoModeEndedException e) {
+            DriverStation.reportError("AUTO MODE DONE!!!! ENDED EARLY!!!!", false);
             return;
         }
 
@@ -36,39 +35,41 @@ public abstract class AutoModeBase {
     }
 
     public void done() {
-        TelemetryUtil.print("Auto mode finished", PrintStyle.INFO, false);
+        System.out.println("Auto mode done");
     }
 
     public void stop() {
         mActive = false;
     }
 
-    public void interrupt() {
-        TelemetryUtil.print("Auto mode interrupted", PrintStyle.INFO, false);
-        mIsInterrupted = true;
-    }
-
-    public void resume() {
-        TelemetryUtil.print("Auto mode resumed", PrintStyle.INFO, false);
-        mIsInterrupted = false;
-    }
-
     public boolean isActive() {
         return mActive;
     }
 
-    public boolean isActiveWithThrow() throws ModeEndedException {
+    public boolean isActiveWithThrow() throws AutoModeEndedException {
         if (!isActive()) {
-            throw new ModeEndedException();
+            throw new AutoModeEndedException();
         }
 
         return isActive();
     }
 
-    public void runAction(Action action) throws ModeEndedException {
+   
+    public void interrupt() {
+        System.out.println("** Auto mode interrrupted!");
+        mIsInterrupted = true;
+    }
+
+    public void resume() {
+        System.out.println("** Auto mode resumed!");
+        mIsInterrupted = false;
+    }
+
+    public void runAction(Action action) throws AutoModeEndedException {
         isActiveWithThrow();
         long waitTime = (long) (mUpdateRate * 1000.0);
 
+        // Wait for interrupt state to clear
         while (isActiveWithThrow() && mIsInterrupted) {
             try {
                 Thread.sleep(waitTime);
@@ -78,8 +79,9 @@ public abstract class AutoModeBase {
         }
 
         action.start();
-        
-        while(isActiveWithThrow() && !action.isFinished() && !mIsInterrupted) {
+
+        // Run action, stop action on interrupt, non active mode, or done
+        while (isActiveWithThrow() && !action.isFinished() && !mIsInterrupted) {
             action.update();
 
             try {
@@ -88,13 +90,12 @@ public abstract class AutoModeBase {
                 e.printStackTrace();
             }
         }
+
         action.done();
+
     }
 
     public boolean getIsInterrupted() {
         return mIsInterrupted;
     }
-
-
-
 }

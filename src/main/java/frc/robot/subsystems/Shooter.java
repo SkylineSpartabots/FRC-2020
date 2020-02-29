@@ -62,6 +62,8 @@ public class Shooter extends Subsystem {
     private boolean mOnTarget = false;
     private double mOnTargetStartTime = Double.POSITIVE_INFINITY;
     private PeriodicIO mPeriodicIO;
+    private boolean mHasReadFromVision = false;
+    private boolean mIsReadingFromVision = false;
 
 
 
@@ -134,7 +136,7 @@ public class Shooter extends Subsystem {
         mMasterShooter.config_kP(kHoldSlot, 0.0);
         mMasterShooter.config_kI(kHoldSlot, 0.0);
         mMasterShooter.config_kD(kHoldSlot, 0.0);
-        mMasterShooter.config_kF(kHoldSlot, Constants.kShooterkF);
+        mMasterShooter.config_kF(kHoldSlot, Constants.kShooterHoldkF);
         mMasterShooter.config_IntegralZone(kHoldSlot, 0);
     }
 
@@ -143,7 +145,7 @@ public class Shooter extends Subsystem {
         mPeriodicIO = new PeriodicIO();
 
         mMasterShooter = TalonFXFactory.createDefaultFalcon("Left Shooter Motor", Ports.SHOOTER_LEFT_SHOOT_ID);
-        configMasterForShooter(mMasterShooter, InvertType.None, false);
+        configMasterForShooter(mMasterShooter, InvertType.InvertMotorOutput, false);
 
 
         mSlaveShooter = TalonFXFactory.createSlaveFalcon("Right Shooter Motor", Ports.SHOOTER_RIGHT_SHOOT_ID, Ports.SHOOTER_LEFT_SHOOT_ID);
@@ -194,6 +196,18 @@ public class Shooter extends Subsystem {
             @Override
             public void onLoop(double timestamp) {
                 synchronized(Shooter.this) {
+                    SmartDashboard.putNumber("Shooter RPM", getCurrentRpm());
+                    if(mIsReadingFromVision) {
+                        if(!mHasReadFromVision) {
+                            if(mLimelight.seesTarget()) {
+                                setHoldWhenReady(getRpmFromDistance(mLimelight.getDistance()));
+                                mHasReadFromVision = true;
+                            } else {
+                                setHoldWhenReady(Constants.kStandardShootVelocity); //TODO: Change back
+                            }
+                        }
+                    }
+
                     if(mControlState != ShooterControlState.OPEN_LOOP) {
                         handleClosedLoop(timestamp);
                     } else {
@@ -213,22 +227,22 @@ public class Shooter extends Subsystem {
     }
 
 
-    public synchronized void shootFromDistance(double distanceInFeet) {
-
-        //TODO: logic (function) for converting distances into desired velocities.
-        //TODO: update over time, prevent oscillation from hold to hold when read
-        double desiredVelocity = distanceInFeet;
-        setHoldWhenReady(desiredVelocity);
+    private double getRpmFromDistance(double x) {
+        if(mLimelight.getDistance() < 180) {
+            return 4400;
+        } else {
+            return 4450;
+        }
     }
 
-    public synchronized void shootFromVisionDistance() {
-        if(mLimelight.seesTarget()) {
-            shootFromDistance(mLimelight.getDistance());
-        } else {
-            //TODO: notify drivers that no vision target available
-            setSpinUp(Constants.kStandardShootVelocity);
-        }
-        
+    public synchronized void shootUsingVision() {
+        mIsReadingFromVision = true;
+        mHasReadFromVision = false;
+    }
+
+    public synchronized void shootAtSetRpm(double rpm) {
+        mIsReadingFromVision = false;
+        setHoldWhenReady(rpm);
     }
 
     public synchronized boolean isShooterActive() {
@@ -259,11 +273,10 @@ public class Shooter extends Subsystem {
     public synchronized void setOpenLoop(double percentOutput) {
         if(mControlState != ShooterControlState.OPEN_LOOP) {
             mControlState = ShooterControlState.OPEN_LOOP;
-           
+            
             configAndEnableMotorLimits(mMasterShooter);
             configAndEnableMotorLimits(mSlaveShooter);
-
-
+            mIsReadingFromVision = false;
         }
     
         mMasterShooter.set(ControlMode.PercentOutput, percentOutput);
@@ -273,7 +286,7 @@ public class Shooter extends Subsystem {
      * prepares for spin up and configures motors for spin up. 
      * @param setpointRpm what to set the target rpm
      */
-    public synchronized void setSpinUp(double setpointRpm) {
+    private void setSpinUp(double setpointRpm) {
         if(mControlState != ShooterControlState.SPIN_UP) {
             configForSpinUp();
         }
@@ -284,7 +297,7 @@ public class Shooter extends Subsystem {
      * Configs motors for holding when ready.
      * @param setpointRpm target rpm for motor
      */
-    public synchronized void setHoldWhenReady(double setpointRpm) {
+    private void setHoldWhenReady(double setpointRpm) {
         if(mControlState == ShooterControlState.SPIN_UP || mControlState == ShooterControlState.OPEN_LOOP) {
             configForHoldWhenReady();
         }
@@ -326,7 +339,7 @@ public class Shooter extends Subsystem {
     private void configForHold() {
         mControlState = ShooterControlState.HOLD;
         mMasterShooter.selectProfileSlot(kHoldSlot, 0);
-        mMasterShooter.config_kF(kHoldSlot, mKfEstimator.getAverage());
+        mMasterShooter.config_kF(kHoldSlot, 0.048);
         mMasterShooter.configClosedloopRamp(Constants.kShooterRampRate);
 
         disableMotorLimits(mMasterShooter);
@@ -342,14 +355,6 @@ public class Shooter extends Subsystem {
     private void resetHold() {
         mKfEstimator.clear();
         mOnTarget = false;
-    }
-
-    /**
-     * calculates a new feed forward value using equation: constant / voltage * applied voltage / velocity_in_ticks_per_100ms
-     * @return calculated feed forward output.
-     */
-    private double estimateKf() { 
-        return (mPeriodicIO.output_percent * 1023.0) / mPeriodicIO.velocity_in_ticks_per_100ms;
     }
 
     /**
@@ -377,25 +382,14 @@ public class Shooter extends Subsystem {
             }
 
             if(mOnTarget) {
-                mKfEstimator.addValue(estimateKf());
+                mKfEstimator.addValue(mPeriodicIO.output_percent);
             }
 
             if(mKfEstimator.getNumValues() >= Constants.kShooterMinOnTargetSamples) {
                 configForHold();
             } else {
-                //TelemetryUtil.print("Spin up in hold when ready", PrintStyle.ERROR, false);
                 mMasterShooter.set(ControlMode.Velocity, mPeriodicIO.setpoint_rpm);
             }
-        }
-
-        if(mControlState == ShooterControlState.HOLD) {
-            if(mPeriodicIO.velocity_in_ticks_per_100ms > mPeriodicIO.setpoint_rpm) { //add logic from going in between hold when ready and hold, maybe use stop on target threshold
-                double kF = estimateKf();
-                mKfEstimator.addValue(kF);
-                mMasterShooter.config_kF(kHoldSlot, mKfEstimator.getAverage());
-                TelemetryUtil.print("Feedforward: " + kF, PrintStyle.ERROR, false);
-            }
-
         }
     }
 
@@ -404,6 +398,7 @@ public class Shooter extends Subsystem {
      * @return if motor rpm is on target
      */
     public synchronized boolean isOnTarget() {
+        //System.out.println("Testing on target");
         return mControlState == ShooterControlState.HOLD;
     }
 
@@ -465,12 +460,22 @@ public class Shooter extends Subsystem {
         };
     }
 
+    public Request setSpinUpRequest(double velocity) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                setSpinUp(velocity);
+            }
+        };
+    }
+
     public Request setVelocityFromVisionRequest() {
         return new Request(){
             
             @Override
             public void act() {
-                shootFromVisionDistance();
+                shootUsingVision();
             }
 
             @Override
@@ -523,7 +528,6 @@ public class Shooter extends Subsystem {
     @Override
     public void outputTelemetry() {
         SmartDashboard.putBoolean("Ready to Fire?", isOnTarget());
-        SmartDashboard.putNumber("Shooter Output Percent", mPeriodicIO.output_percent);
         SmartDashboard.putNumber("Shooter Velocity RPM", getCurrentRpm());
 
         if(debug) {

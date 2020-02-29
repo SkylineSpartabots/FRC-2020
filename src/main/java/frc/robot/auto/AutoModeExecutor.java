@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018 FIRST. All Rights Reserved.                             */
+/* Copyright (c) 2018-2019 FIRST. All Rights Reserved.                        */
 /* Open Source Software - may be modified and shared by FRC teams. The code   */
 /* must be accompanied by the FIRST BSD license file in the root directory of */
 /* the project.                                                               */
@@ -11,19 +11,20 @@ import frc.lib.util.CrashTrackingRunnable;
 import frc.robot.auto.modes.AutoModeBase;
 
 /**
- * Add your docs here.
+ * This class selects, runs, and (if necessary) stops a specified autonomous
+ * mode.
  */
-public class ModeExecutor {
-    private static ModeExecutor mInstance = null;
+public class AutoModeExecutor {
+    private static AutoModeExecutor mInstance = null;
 
     private AutoModeBase mAutoMode = null;
     private Thread mThread = null;
 
-    public ModeExecutor() {}
+    public AutoModeExecutor() {}
 
-    public static ModeExecutor getInstance() {
-        if(mInstance == null) {
-            mInstance = new ModeExecutor();
+    public static AutoModeExecutor getInstance() {
+        if (mInstance == null) {
+            mInstance = new AutoModeExecutor();
         }
 
         return mInstance;
@@ -31,11 +32,10 @@ public class ModeExecutor {
 
     public void setAutoMode(AutoModeBase new_auto_mode) {
         mAutoMode = new_auto_mode;
-        mThread = new Thread(new CrashTrackingRunnable(){
-        
+        mThread = new Thread(new CrashTrackingRunnable() {
             @Override
             public void runCrashTracked() {
-                if(mAutoMode != null) {
+                if (mAutoMode != null) {
                     mAutoMode.run();
                 }
             }

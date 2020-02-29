@@ -5,32 +5,15 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.auto.actions;
+package frc.robot.auto.modes;
 
-/**
- * Add your docs here.
- */
-public class LambdaAction implements Action {
+import frc.robot.auto.AutoModeEndedException;
 
-    private LambdaSupplier mF;
 
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
+public class TwoBallGeneratorShootFiveMiddle extends AutoModeBase {
+
+    @Override
+    protected void routine() throws AutoModeEndedException {
+
     }
-
-    @Override
-    public void start() {
-        mF.f();
-    }
-
-    @Override
-    public void update() {}
-
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
-
-    @Override
-    public void done() {}
 }

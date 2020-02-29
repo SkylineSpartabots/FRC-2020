@@ -7,30 +7,31 @@
 
 package frc.robot.auto.actions;
 
+import frc.robot.subsystems.Superstructure;
+
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
-
-    private LambdaSupplier mF;
-
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
-    }
-
-    @Override
-    public void start() {
-        mF.f();
-    }
-
-    @Override
-    public void update() {}
+public class WaitForRequestsAction implements Action {
 
     @Override
     public boolean isFinished() {
-        return true;
+        return Superstructure.getInstance().requestsCompleted();
+    }
+    
+    @Override
+    public void start() {
+
     }
 
     @Override
-    public void done() {}
+    public void update() {
+
+    }
+
+
+    @Override
+    public void done() {
+
+    }
 }

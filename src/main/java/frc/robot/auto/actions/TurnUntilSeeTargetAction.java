@@ -7,30 +7,38 @@
 
 package frc.robot.auto.actions;
 
+import frc.lib.util.DriveSignal;
+import frc.robot.subsystems.Drive;
+import frc.robot.subsystems.Limelight;
+
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
+public class TurnUntilSeeTargetAction implements Action {
 
-    private LambdaSupplier mF;
-
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
+    private boolean mIsLeft;
+    public TurnUntilSeeTargetAction(boolean isLeft) {
+        mIsLeft = isLeft;
     }
 
+    
     @Override
     public void start() {
-        mF.f();
+        Drive.getInstance().setOpenLoop(mIsLeft ? new DriveSignal(-0.5, 0.5) : new DriveSignal(0.5, -0.5));
     }
 
     @Override
-    public void update() {}
+    public void update() {
+
+    }
 
     @Override
     public boolean isFinished() {
-        return true;
+        return Limelight.getInstance().seesTarget();
     }
 
     @Override
-    public void done() {}
+    public void done() {
+        Drive.getInstance().setOpenLoop(new DriveSignal(0.0, 0.0));
+    }
 }

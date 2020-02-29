@@ -7,20 +7,24 @@
 
 package frc.robot.auto.actions;
 
+import edu.wpi.first.wpilibj.Timer;
+
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
+public class WaitThenLambdaAction implements Action {
 
     private LambdaSupplier mF;
+    private double mWaitTime;
 
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
+    public WaitThenLambdaAction(LambdaSupplier f, double waitTime) {
+        mF = f;
+        mWaitTime = waitTime;
     }
 
     @Override
     public void start() {
-        mF.f();
+        mWaitTime += Timer.getFPGATimestamp();
     }
 
     @Override
@@ -28,9 +32,11 @@ public class LambdaAction implements Action {
 
     @Override
     public boolean isFinished() {
-        return true;
+        return mWaitTime > Timer.getFPGATimestamp();
     }
 
     @Override
-    public void done() {}
+    public void done() {
+        mF.f();
+    }
 }

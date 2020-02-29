@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import edu.wpi.first.wpilibj.Timer;
 import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.TelemetryUtil.PrintStyle;
@@ -43,7 +44,8 @@ public class Superstructure extends Subsystem {
    // private Spinner mSpinner = Spinner.getInstance();
     private Hopper mHopper;
     private Intake mIntake;
-    //private Climb mClimb = Climb.getInstance();
+    private Limelight mLimelight;
+    private Climb mClimb;
 
     private RequestList activeRequests;
     private ArrayList<RequestList> queuedRequests;
@@ -59,6 +61,8 @@ public class Superstructure extends Subsystem {
         mShooter = Shooter.getInstance();
         mHopper = Hopper.getInstance();
         mIntake = Intake.getInstance();
+        mClimb = Climb.getInstance();
+        mLimelight = Limelight.getInstance();
 
         queuedRequests = new ArrayList<>(0);
     }
@@ -150,6 +154,7 @@ public class Superstructure extends Subsystem {
             @Override
             public void onStart(double timestamp) {
                 stop();
+                clearRequests();
             }
     
             @Override
@@ -217,7 +222,7 @@ public class Superstructure extends Subsystem {
     }
 
     public RequestList disabledRequest() {
-        return new RequestList(Arrays.asList(mDrive.openLoopRequest(DriveSignal.BRAKE)), true);
+        return new RequestList(Arrays.asList(mDrive.openLoopRequest(DriveSignal.NEUTRAL)), true);
     }
 
 
@@ -243,13 +248,68 @@ public class Superstructure extends Subsystem {
     }*/
 
     public void autoShootSequence() {
-        TelemetryUtil.print("Running auto sequence", PrintStyle.ERROR, true);
         RequestList state = new RequestList(Arrays.asList(mDrive.alignToTargetRequest(), 
-            mShooter.setVelocityAndWaitRequest(Constants.kStandardShootVelocity),
+            mShooter.setVelocityFromVisionRequest(),
             mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF)), true);
-        RequestList queue = new RequestList(Arrays.asList(/*mShooter.setVelocityFromVisionRequest(),*/ mHopper.stateRequest(HopperControlState.INDEX)), false);
+        RequestList queue = new RequestList(Arrays.asList(mHopper.stateRequest(HopperControlState.SMART_SENSORED_INDEX)), false);
         request(state);
         replaceQueue(queue);
+    }
+
+    public void autoShootBalls(int balls) {
+        RequestList state = new RequestList(Arrays.asList( 
+            mDrive.alignToTargetRequest(), mShooter.setVelocityFromVisionRequest(), mIntake.stateRequest(IntakeControlState.IDLE_WHILE_DEPLOYED), mHopper.stateRequest(HopperControlState.OFF)), true);
+        RequestList queue = new RequestList(Arrays.asList(mDrive.openLoopRequest(new DriveSignal(0, 0)), mHopper.indexBallNumberRequest(balls)), false);
+        request(state);
+        replaceQueue(queue);
+    }
+
+
+    public void autoShootBalls(int balls, int rpm, double waitTime) {
+        RequestList state = new RequestList(Arrays.asList( 
+            mDrive.alignToTargetRequest(), mShooter.setVelocityAndWaitRequest(rpm), mIntake.stateRequest(IntakeControlState.INTAKE), mHopper.stateRequest(HopperControlState.OFF)), true);
+        RequestList queue = new RequestList(Arrays.asList(waitRequest(waitTime), mHopper.indexBallNumberRequest(balls)), false);
+        request(state);
+        replaceQueue(queue);
+    }
+
+
+    public Request waitRequest(double seconds) {
+        return new Request() {
+            double startTime = 0;
+            double waitTime = 1;
+
+            @Override
+            public void act() {
+                startTime = Timer.getFPGATimestamp();
+                waitTime = seconds;
+            }
+
+            @Override
+            public boolean isFinished() {
+                return (Timer.getFPGATimestamp() - startTime) >= waitTime;
+            }
+        };
+    }
+
+
+
+
+
+    public Request turnUntilSeesTargetRequest(boolean left) {
+        return new Request(){
+        
+            @Override
+            public void act() {
+                mDrive.setOpenLoop(left ? new DriveSignal(-0.3, 0.3) 
+                    : new DriveSignal(0.3, -0.3));
+            }
+
+            @Override
+            public boolean isFinished() {
+                return mLimelight.seesTarget();
+            }
+        };
     }
 
 
@@ -294,7 +354,7 @@ public class Superstructure extends Subsystem {
     }
 
 	public boolean isAtDesiredState() {
-		return false;
+		return true;
 	}
 
 

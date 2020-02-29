@@ -70,7 +70,11 @@ public class Drive extends Subsystem {
     // controllers
     private final RamseteController mRamseteController;
     private final PIDController mLeftPidController, mRightPidController, mTurnPidController, mAlignPidController;
-    private boolean mIsAlignToTarget = false;
+    
+    private boolean mIsAlignedToTarget = false;
+    private boolean mRawIsAlignedToTarget = false;
+    private double mBeganAlignedToTarget = Double.POSITIVE_INFINITY;
+
     private final SimpleMotorFeedforward mFeedforwardController;
     private final DifferentialDriveKinematics mDriveKinematics;
     private DifferentialDriveWheelSpeeds mPrevWheelSpeeds;
@@ -165,17 +169,18 @@ public class Drive extends Subsystem {
 
         mFeedforwardController = new SimpleMotorFeedforward(Constants.kDriveKsVolts, Constants.kDriveKvVolts,
                 Constants.kDriveKaVolts);
-        mLeftPidController = new PIDController(0.0, 0.0, 0.0);
-        mRightPidController = new PIDController(0.0, 0.0, 0.0);
+        mLeftPidController = new PIDController(Constants.kDrivePathingProportion, 0.0, 0.0);
+        mRightPidController = new PIDController(Constants.kDrivePathingProportion, 0.0, 0.0);
 
-        mTurnPidController = new PIDController(0.004, 0.0, 0.0);
+        mTurnPidController = new PIDController(0.0029, 0.0, 0.0);
         mTurnPidController.enableContinuousInput(-180, 180);
-        mTurnPidController.setTolerance(1.0, 1.5);
+        mTurnPidController.setTolerance(1.5);
+        mTurnPidController.setMinMaxOutput(-0.7, 0.7);
 
-        mAlignPidController = new PIDController(0.0033, 0.00, 0.00);
+        mAlignPidController = new PIDController(0.0022, 0.0001, 0.00);
         mAlignPidController.setIntegratorRange(-0.1, 0.1);
         mAlignPidController.enableContinuousInput(-180, 180);
-        mAlignPidController.setTolerance(2.0);
+        mAlignPidController.setTolerance(1.5);
         mAlignPidController.setMinMaxOutput(-0.7, 0.7);
 
         mIsBrakeMode = true;
@@ -216,7 +221,6 @@ public class Drive extends Subsystem {
 
         mPeriodicIO.right_position = (mRightMaster.getSelectedSensorPosition() / 2048.0) * 0.0972 * Math.PI
                 * Constants.kDriveWheelDiameterInMeters;
-
         mPeriodicIO.left_velocity = (mLeftMaster.getSelectedSensorVelocity() / 2048) * 0.0972 * Math.PI
                 * Constants.kDriveWheelDiameterInMeters * 20.0;
 
@@ -345,6 +349,7 @@ public class Drive extends Subsystem {
                     mLeftMaster.getName() + " failed to set neutral deadband on openloop transition", true);
             PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.04, Constants.kTimeOutMs),
                     mRightMaster.getName() + " failed to set neutral deadband on openloop transition", true);
+            mCurrentPath = null;
             mDriveControlState = DriveControlState.OPEN_LOOP;
         }
 
@@ -490,7 +495,7 @@ public class Drive extends Subsystem {
     public synchronized void setDrivePath(Trajectory path) {
         if (mCurrentPath != path || mDriveControlState != DriveControlState.PATH_FOLLOWING) {
             mCurrentPath = path;
-            mPrevPathClockCycleTime = Timer.getFPGATimestamp();
+            
 
             Trajectory.State initialState = path.sample(0);
             mPrevWheelSpeeds = mDriveKinematics.toWheelSpeeds(new ChassisSpeeds(initialState.velocityMetersPerSecond, 0,
@@ -500,6 +505,7 @@ public class Drive extends Subsystem {
             mRightPidController.reset();
 
             mTimeSincePathStart = Timer.getFPGATimestamp();
+            mPrevPathClockCycleTime = Timer.getFPGATimestamp();
 
             if (mDriveControlState != DriveControlState.PATH_FOLLOWING) {
                 setBrakeMode(true);
@@ -559,6 +565,7 @@ public class Drive extends Subsystem {
                     mLeftMaster.getName() + " failed to set neutral deadband on pathing transition", true);
             PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
                     mRightMaster.getName() + " failed to set neutral deadband on pathing transition", true);
+            mCurrentPath = null;
             mDriveControlState = DriveControlState.TURN_PID;
         }
 
@@ -571,7 +578,10 @@ public class Drive extends Subsystem {
 
     private void updateTurnPid() {
         if (mDriveControlState == DriveControlState.TURN_PID) {
-            double output = mTurnPidController.calculate(getHeading().getDegrees());
+            double output = mAlignPidController.calculate(getHeading().getDegrees());
+            if(Math.abs(mAlignPidController.getPositionError()) > 0.5) {
+                output += Constants.kDriveTurnKs * Math.signum(output);
+            }
             setVelocity(new DriveSignal(output, -output));
         } else {
             TelemetryUtil.print("Robot is not in a turn pid state", PrintStyle.ERROR, true);
@@ -593,10 +603,16 @@ public class Drive extends Subsystem {
                     mLeftMaster.getName() + " failed to set neutral deadband on pathing transition", true);
             PheonixUtil.checkError(mRightMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
                     mRightMaster.getName() + " failed to set neutral deadband on pathing transition", true);
-            mIsAlignToTarget = false;
+            
+            mIsAlignedToTarget = false;
+            mRawIsAlignedToTarget = false;
+            mBeganAlignedToTarget = Double.POSITIVE_INFINITY;
+
             mAlignPidController.reset();
-            mDriveControlState = DriveControlState.ALIGN_TO_TARGET;
             mRememberedGyroTarget = 0.0;
+            mCurrentPath = null;
+            mDriveControlState = DriveControlState.ALIGN_TO_TARGET;
+            
         }
     }
 
@@ -604,14 +620,31 @@ public class Drive extends Subsystem {
         if (mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
             if (mLimelight.seesTarget()) {
                 mRememberedGyroTarget = getHeading().getDegrees() + mLimelight.getXOffset();
-                mIsAlignToTarget = mAlignPidController.atSetpoint();
+                
+                if(mAlignPidController.atSetpoint()) {
+                    if(!mRawIsAlignedToTarget) {
+                        mBeganAlignedToTarget = Timer.getFPGATimestamp();
+                    } else {
+                        if(Timer.getFPGATimestamp() - mBeganAlignedToTarget > 0.2) {
+                            mIsAlignedToTarget = true;
+                        }
+                    }
+                    mRawIsAlignedToTarget = true;
+
+                } else {
+                    mRawIsAlignedToTarget = false;
+                    mIsAlignedToTarget = false;
+                    mBeganAlignedToTarget = Double.POSITIVE_INFINITY;
+                }
 
             } else {
-                mIsAlignToTarget = false;
+                mIsAlignedToTarget = false;
             }
 
             double output = mAlignPidController.calculate(getHeading().getDegrees(), mRememberedGyroTarget);
-            output += Math.abs(mAlignPidController.getPositionError()) < 0.5 ? 0.0 : Constants.kDriveTurnKs;
+            if(Math.abs(mAlignPidController.getPositionError()) > 0.5) {
+                output += 0.03 * Math.signum(output);
+            }
             setVelocity(new DriveSignal(output, -output));
 
         } else {
@@ -621,10 +654,10 @@ public class Drive extends Subsystem {
 
     public synchronized boolean hasAlginedToTarget() {
         if (mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
-            return mIsAlignToTarget;
+            return mIsAlignedToTarget;
         }
 
-        return true;
+        return false;
     }
 
     /**
@@ -725,11 +758,14 @@ public class Drive extends Subsystem {
      */
     @Override
     public void outputTelemetry() {
+        /*
         SmartDashboard.putNumber("NavX Heading", getHeading().getDegrees());
         SmartDashboard.putNumber("Odometry X", mOdometry.getPoseMeters().getTranslation().getX());
         SmartDashboard.putNumber("Odometry Y", mOdometry.getPoseMeters().getTranslation().getY());
-        SmartDashboard.putNumber("Odometry Heading", mOdometry.getPoseMeters().getRotation().getDegrees());
+        SmartDashboard.putNumber("Odometry Heading", mOdometry.getPoseMeters().getRotation().getDegrees());*/
+        
         SmartDashboard.putBoolean("Is Aligned To Target", hasAlginedToTarget());
+        
     }
 
     public Request openLoopRequest(DriveSignal driveSignal) {

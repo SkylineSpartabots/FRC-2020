@@ -7,44 +7,49 @@
 
 package frc.robot.auto.actions;
 
-import edu.wpi.first.wpilibj.Timer;
-import frc.lib.util.DriveSignal;
-import frc.robot.subsystems.Drive;
+import frc.robot.subsystems.Superstructure;
+import frc.robot.subsystems.requests.RequestList;
 
 /**
  * Add your docs here.
  */
-public class DriveOpenLoopAction implements Action {
+public class RequestAction implements Action {
 
-    private static final Drive mDrive = Drive.getInstance();
 
-    private double mStartTime;
-    private final double mDuration, mLeft, mRight;
+    private RequestList mRequestList;
+    private RequestList mQueuedList;
 
-    public DriveOpenLoopAction(double left, double right, double duration) {
-        mDuration = duration;
-        mLeft = left;
-        mRight = right;
+    public RequestAction(RequestList requestList) {
+        this(requestList, null);
     }
+
+    public RequestAction(RequestList requestList, RequestList queuedList) {
+        mRequestList = requestList;
+        mQueuedList = queuedList;
+    }
+
 
     @Override
     public void start() {
-        mDrive.setOpenLoop(new DriveSignal(mLeft, mRight));
-        mStartTime = Timer.getFPGATimestamp();
+        Superstructure.getInstance().request(mRequestList);
+
+        if(mQueuedList != null) {
+            Superstructure.getInstance().replaceQueue(mQueuedList);
+        }
     }
 
     @Override
     public void update() {
-        
+
     }
 
     @Override
     public boolean isFinished() {
-        return Timer.getFPGATimestamp() - mStartTime > mDuration;
+        return Superstructure.getInstance().requestsCompleted();
     }
 
     @Override
     public void done() {
-        mDrive.setOpenLoop(new DriveSignal(0, 0));
+
     }
 }

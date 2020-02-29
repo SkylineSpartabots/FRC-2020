@@ -34,7 +34,7 @@ public class AirCompressor extends Subsystem {
     private AirCompressor() {}
 
     private final Superstructure mSuperstructure = Superstructure.getInstance();
-    private final PowerDistributionPanel mPdp = new PowerDistributionPanel(Ports.PDP_ID);
+    //private final PowerDistributionPanel mPdp = new PowerDistributionPanel(Ports.PDP_ID);
     private final OverridesController mOverrides = OverridesController.getInstance();
 
     private boolean mIsManualControl = false;
@@ -46,21 +46,23 @@ public class AirCompressor extends Subsystem {
 
             @Override
             public void onStart(final double timestamp) {
-                mPdp.clearStickyFaults();
+                //mPdp.clearStickyFaults();
 
             }
 
             @Override
             public void onLoop(final double timestamp) {
                 synchronized (AirCompressor.this) {
-                    final boolean superstructureIsMoving = !mSuperstructure.isAtDesiredState();
-                    final boolean isBrowningOut = mPdp.getTotalCurrent() > Constants.kCompressorShutOffCurrent;
+                   // final boolean superstructureIsMoving = !mSuperstructure.isAtDesiredState();
+                   // final boolean isBrowningOut = mPdp.getTotalCurrent() > Constants.kCompressorShutOffCurrent;
 
-                    if (superstructureIsMoving || isBrowningOut || !mIsManualControl || !mOverrides.airCompressorOverride.isEnabled()) {
+                    /*if (superstructureIsMoving || isBrowningOut || !mIsManualControl || mOverrides.airCompressorOverride.isEnabled()) {
                         stopCompressor();
                     } else {
                         startCompressor();
-                    }
+                    }*/
+                    //startCompressor();
+                    stopCompressor();
 
                 }
             }

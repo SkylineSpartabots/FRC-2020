@@ -7,16 +7,15 @@
 
 package frc.robot.auto.modes;
 
-import frc.robot.auto.ModeEndedException;
+import frc.robot.auto.AutoModeEndedException;
 
 /**
  * Add your docs here.
  */
-public class TrenchFullAuto extends AutoModeBase {
+public class TrenchRun extends AutoModeBase {
 
     @Override
-    protected void routine() throws ModeEndedException {
-        // TODO Auto-generated method stub
+    protected void routine() throws AutoModeEndedException {
 
     }
 }

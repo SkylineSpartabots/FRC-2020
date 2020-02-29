@@ -26,30 +26,34 @@ public class Constants {
 	public static final double kQuickStopThreshold = 0;
 	public static final double kQuickStopAlpha = 0.05;
 
-	public static final double kDriveKaVolts = 0.2;
-	public static final double kDriveKvVolts = 1.98;
-	public static final double kDriveKsVolts = 0.22;
-	public static final double kDriveMaxVelocity = 2; //4.75
-	public static final double kDriveMaxAcceleration = 2; //3.166
+	public static final double kPerfectlyDriveProportion = 0.005;
+	
+	public static final double kDriveKaVolts = 0.08;
+	public static final double kDriveKvVolts = 0.05;
+	public static final double kDriveKsVolts = 0.08;
+	public static final double kDriveMaxVelocity = 1; //4.75
+	public static final double kDriveMaxAcceleration = 1; //3.166
+	public static final double kDrivePathingProportion = 0.004;
 
-	public static final double kDriveTurnKs = 0.05;
+	public static final double kDriveTurnKs = 0.025; //0.04
 
 	// Shooter	
 	public static final double kShooterRampRate = 0.2;
 	public static final int kShooterKfBufferSize = 20;
-	public static final double kShooterkP = 0.00;
-	public static final double kShooterkI = 0.00001;
+	public static final double kShooterkP = 0.01; //0.22
+	public static final double kShooterkI = 0.00005;
 	public static final double kShooterkD = 0;
-	public static final double kShooterkF = 0.049;
+	public static final double kShooterkF = 0.031;
+	public static final double kShooterHoldkF = 0.048;
 	public static final int kShooterIZone = 0;
-	public static final double kShooterStartOnTargetRpm = 300;
-	public static final double kShooterStopOnTargetRpm = 200;
+	public static final double kShooterStartOnTargetRpm = 200;
+	public static final double kShooterStopOnTargetRpm = 150;
 	public static final int kShooterMinOnTargetSamples = 20;
 	public static final double kRawVelocityToRpm = 1195.0/600.0;
 
 	// Limelight
 	public static final double kLensHeight = 26;
-	public static final double kLensHorizontalAngle = 60;
+	public static final double kLensHorizontalAngle = 30;
 	public static final double kTargetHeight = 98.5;
 
 	
@@ -65,21 +69,24 @@ public class Constants {
 	public static final double kSlideDownToWinchTransitionTime = 0.1;
 	public static final double kSlideDownEncoderTarget = 100;
 	public static final double kHookSlideWaitHeightThreshold = 900;
+	public static final double kClimbMaxHeight = 16500; //18200
 	
 	// Air Compressor
-	public static final double kCompressorShutOffCurrent = 0;
+	public static final double kCompressorShutOffCurrent = 60;
 
 	public static final double kRotationControlPercentOutput = 0;
 
-	public static final double kStandardShootVelocity = 8500;
+	public static final double kStandardShootVelocity = 4600;
 
 	public static final double kDriveAlignControlGainSchedule = 3.5;
 
-	public static final int kIndexSensorThreshold = 0;
+	public static final int kIndexSensorThreshold = 100;
 
 	public static final double kStartUnjamTimeThreshold = 1;
 
 	public static final double kStopUnjamTime = 0.4;
+
+	
 
 	
 

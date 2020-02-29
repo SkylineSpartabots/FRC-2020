@@ -95,7 +95,7 @@ public class Intake extends Subsystem {
                     if(mCurrentState == IntakeControlState.STORE) {
                         double driveVelocity = mDrive.getAverageDriveVelocityMagnitude();
                         setInnerIntakeSpeed(0.0);
-                        setOuterIntakeSpeed(-Util.limit(driveVelocity * 0.6, mCurrentState.outerIntakeSpeed));
+                        setOuterIntakeSpeed(-Util.limit(driveVelocity * 0.7, mCurrentState.outerIntakeSpeed));
                     }
                 }
             }

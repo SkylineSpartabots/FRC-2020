@@ -79,7 +79,7 @@ public class PathGenerator {
 
     private static Pose2d mAutoStartingPose = new Pose2d(new Translation2d(0.0, 0.0), new Rotation2d(0.0));
 
-    private static Pose2d mTrenchEndPose = new Pose2d(new Translation2d(3.0, 0.0), new Rotation2d(0.0));
+    private static Pose2d mTrenchEndPose = new Pose2d(new Translation2d(1, 0.0), new Rotation2d(0.0));
 
     private static Pose2d mTrenchRunShootPose = new Pose2d(new Translation2d(0.0, 0.0), Rotation2d.fromDegrees(0.0));
 
@@ -92,7 +92,7 @@ public class PathGenerator {
         //public final Trajectory startPositionTwoToTrenchEnd;
         //public final Trajectory startPositionThreeToOpponentBalls;
         //public final Trajectory opponentBallsToShootLocation;
-        //public final Trajectory trenchEndToShootLocation;
+        public final Trajectory trenchEndToShootLocation;
 
 
         private PathSet() {
@@ -102,7 +102,7 @@ public class PathGenerator {
             //startPositionThreeToOpponentBalls = getStartPositionThreeToOpponentBalls();
             //opponentBallsToShootLocation = getOpponentBallsToShootLocation();
 
-            //trenchEndToShootLocation = getTrenchEndToShootLocation();
+            trenchEndToShootLocation = getTrenchEndToShootLocation();
         }
 
     }
@@ -111,8 +111,8 @@ public class PathGenerator {
 
     private Trajectory getStartPositionOneToTrenchEnd() {
         List<Translation2d> innerWaypoints = new ArrayList<>();
-        innerWaypoints.add(new Translation2d(1, 1));
-        innerWaypoints.add(new Translation2d(2, -1));
+        //innerWaypoints.add(new Translation2d(1, 0.5));
+        innerWaypoints.add(new Translation2d(0.5, -0.1));
 
         return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, false);
     }
@@ -127,9 +127,9 @@ public class PathGenerator {
 
     private Trajectory getTrenchEndToShootLocation() {
         List<Translation2d> innerWaypoints = new ArrayList<>();
-        innerWaypoints.add(new Translation2d(0.0, 0.0));
+        //innerWaypoints.add(new Translation2d(0., 0.0));
 
-        return generatePath(mAutoStartingPose, innerWaypoints, mTrenchEndPose, true);
+        return generatePath(mTrenchEndPose, innerWaypoints, mAutoStartingPose, true);
     }
 
     private Trajectory getStartPositionThreeToOpponentBalls() {

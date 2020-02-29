@@ -67,7 +67,7 @@ public class TalonSRXFactory {
         kSlaveConfiguration.GENERAL_STATUS_FRAME_RATE_MS = 1000;
         kSlaveConfiguration.FEEDBACK_STATUS_FRAME_RATE_MS = 1000;
         kSlaveConfiguration.QUAD_ENCODER_STATUS_FRAME_RATE_MS = 1000;
-        kSlaveConfiguration.ANALOG_TEMP_VBAT_STATUS_FRAME_RATE_MS = 1000;
+        kSlaveConfiguration.ANALOG_TEMP_VBAT_STATUS_FRAME_RATE_MS = 5000;
         kSlaveConfiguration.PULSE_WIDTH_STATUS_FRAME_RATE_MS = 1000;
         kSlaveConfiguration.ENABLE_SOFT_LIMIT = false;
     }

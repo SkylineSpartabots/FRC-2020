@@ -5,32 +5,9 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-package frc.robot.auto.actions;
+package frc.robot.auto;
 
-/**
- * Add your docs here.
- */
-public class LambdaAction implements Action {
 
-    private LambdaSupplier mF;
-
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
-    }
-
-    @Override
-    public void start() {
-        mF.f();
-    }
-
-    @Override
-    public void update() {}
-
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
-
-    @Override
-    public void done() {}
+public class AutoModeEndedException extends Exception {
+    private static final long serialVersionUID = 4044799049301595201L;
 }

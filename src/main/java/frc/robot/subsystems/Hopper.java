@@ -29,33 +29,30 @@ import frc.robot.loops.ILooper;
 import frc.robot.loops.Loop;
 import frc.robot.subsystems.requests.Request;
 
-
 public class Hopper extends Subsystem {
 
     private static Hopper mInstance = null;
-    
+
     public static Hopper getInstance() {
-        if(mInstance == null) {
+        if (mInstance == null) {
             mInstance = new Hopper();
         }
         return mInstance;
     }
 
-    //debug
+    // debug
     private final boolean debug = false;
 
-    //hardware
+    // hardware
     private final LazyTalonSRX mIndexMotor, mLeftBelt, mRightBelt;
     private final AnalogInput mIndexSensor;
     private final OverridesController mOverrides = OverridesController.getInstance();
 
-
-    //control states
+    // control states
     private HopperControlState mCurrentState = HopperControlState.OFF;
     private boolean mStateChanged = false;
     private double mStateChangeTimestamp = 0.0;
-    
-    
+
     private double mIndexSensorBeganTimestamp = Double.POSITIVE_INFINITY;
     private double mLastSeenBallTimestamp = Double.POSITIVE_INFINITY;
     private double mStartUnjamTimstamp = Double.POSITIVE_INFINITY;
@@ -66,33 +63,31 @@ public class Hopper extends Subsystem {
 
     private void configureBeltMotor(LazyTalonSRX talon, InvertType inversion) {
         talon.setInverted(inversion);
-        
+
         PheonixUtil.checkError(talon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
-            talon.getName() + " failed to set voltage compensation", true);
+                talon.getName() + " failed to set voltage compensation", true);
         PheonixUtil.checkError(talon.configVoltageMeasurementFilter(32, Constants.kTimeOutMs),
-            talon.getName() + " failed to set voltage meas. filter", true);
+                talon.getName() + " failed to set voltage meas. filter", true);
         talon.enableVoltageCompensation(true);
 
         TalonSRXUtil.setCurrentLimit(talon, 20);
-        
+
         talon.setNeutralMode(NeutralMode.Coast);
     }
 
     private void configureIndexMotor(LazyTalonSRX talon, InvertType inversion) {
         talon.setInverted(inversion);
-        
+
         PheonixUtil.checkError(talon.configVoltageCompSaturation(12.0, Constants.kTimeOutMs),
-            talon.getName() + " failed to set voltage compensation", true);
+                talon.getName() + " failed to set voltage compensation", true);
         PheonixUtil.checkError(talon.configVoltageMeasurementFilter(32, Constants.kTimeOutMs),
-            talon.getName() + " failed to set voltage meas. filter", true);
+                talon.getName() + " failed to set voltage meas. filter", true);
         talon.enableVoltageCompensation(true);
 
         TalonSRXUtil.setCurrentLimit(talon, 25);
-        
+
         talon.setNeutralMode(NeutralMode.Brake);
     }
-    
-
 
     private Hopper() {
         mIndexMotor = TalonSRXFactory.createDefaultTalon("Index Motor", Ports.HOPPER_INDEX_ID);
@@ -107,56 +102,61 @@ public class Hopper extends Subsystem {
         mIndexSensor = new AnalogInput(Ports.HOPPER_INDEX_SENSOR_PORT);
     }
 
-
     @Override
     public void registerEnabledLoops(ILooper mEnabledLooper) {
         mEnabledLooper.register(new Loop() {
 
             @Override
             public void onStart(double timestamp) {
-                synchronized(Hopper.this) {
+                synchronized (Hopper.this) {
                     mHasBall = false;
+                    mNumberOfBallsShot = 0;
                 }
             }
 
             @Override
             public void onLoop(double timestamp) {
-                synchronized(Hopper.this) {
-                    if(!mOverrides.indexSensorOverride.isEnabled()) {
-                        if(mCurrentState == HopperControlState.SENSORED_INTAKE || mCurrentState == HopperControlState.SENSORED_INDEX) {
-                            if(rawBallDetected()) {
-                                if(Double.isInfinite(mIndexSensorBeganTimestamp)) {
-                                    mIndexSensorBeganTimestamp = timestamp;
-                                } else {
-                                    if(timestamp - mIndexSensorBeganTimestamp > 0.05) {
-                                        mLastSeenBallTimestamp = timestamp;
-                                        mHasBall = true;
-                                    }
-                                }
-                            } else if(!Double.isInfinite(mIndexSensorBeganTimestamp)) {
-                                mIndexSensorBeganTimestamp = Double.POSITIVE_INFINITY;
-                                mHasBall = false;
-                                mNumberOfBallsShot++;
-                            }
-                        }
-    
-    
-                        if(mCurrentState == HopperControlState.SENSORED_INTAKE) {
-                            if(mHasBall) {
-                                setIndexSpeed(0.0);
-                                setBeltSpeed(0.0, 0.0);
+                synchronized (Hopper.this) {
+                    //System.out.println("Number of Balls: " + mNumberOfBallsShot);
+                    if (mCurrentState == HopperControlState.SENSORED_INTAKE
+                            || mCurrentState == HopperControlState.SENSORED_INDEX
+                            || mCurrentState == HopperControlState.SMART_SENSORED_INDEX) {
+                        if (rawBallDetected()) {
+                            if (Double.isInfinite(mIndexSensorBeganTimestamp)) {
+                                mIndexSensorBeganTimestamp = timestamp;
                             } else {
-                                setIndexSpeed(mCurrentState.indexSpeed);
-                                setBeltSpeed(mCurrentState.leftBeltSpeed, mCurrentState.rightBeltSpeed);
+                                if (timestamp - mIndexSensorBeganTimestamp > 0.02) {
+                                    mLastSeenBallTimestamp = timestamp;
+                                    mHasBall = true;
+                                }
                             }
-                        } else if(mCurrentState == HopperControlState.SENSORED_INDEX) {
+                        } else if (!Double.isInfinite(mIndexSensorBeganTimestamp)) {
+                            mIndexSensorBeganTimestamp = Double.POSITIVE_INFINITY;
+                            mHasBall = false;
+                            mNumberOfBallsShot++;
+                        }
+                    }
+
+                    if (mCurrentState == HopperControlState.SENSORED_INTAKE) {
+                        if (mHasBall) {
+                            setIndexSpeed(0.0);
+                            setBeltSpeed(0.0, 0.0);
+                        } else {
                             setIndexSpeed(mCurrentState.indexSpeed);
-                            if(timestamp - mLastSeenBallTimestamp > Constants.kStartUnjamTimeThreshold) {
-                                if(!mIsUnjamming) {
+                            setBeltSpeed(mCurrentState.leftBeltSpeed, mCurrentState.rightBeltSpeed);
+                        }
+                    } else if (mCurrentState == HopperControlState.SENSORED_INDEX || mCurrentState == HopperControlState.SMART_SENSORED_INDEX) {
+                        if(mCurrentState == HopperControlState.SMART_SENSORED_INDEX && !Drive.getInstance().hasAlginedToTarget()) {
+                            setIndexSpeed(0.0);
+                            setBeltSpeed(0.0, 0.0);
+                        } else {
+                            setIndexSpeed(mCurrentState.indexSpeed);
+                            if (timestamp - mLastSeenBallTimestamp > Constants.kStartUnjamTimeThreshold) {
+                                if (!mIsUnjamming) {
                                     mStartUnjamTimstamp = timestamp;
                                     mIsUnjamming = true;
                                 }
-                                if(timestamp - mStartUnjamTimstamp > Constants.kStopUnjamTime) {
+                                if (timestamp - mStartUnjamTimstamp > Constants.kStopUnjamTime) {
                                     mLastSeenBallTimestamp = timestamp;
                                 }
                                 setBeltSpeed(mCurrentState.leftBeltSpeed, -mCurrentState.rightBeltSpeed);
@@ -164,37 +164,22 @@ public class Hopper extends Subsystem {
                                 setBeltSpeed(mCurrentState.leftBeltSpeed, mCurrentState.rightBeltSpeed);
                                 mIsUnjamming = false;
                             }
-                        }
-                    } else {
-                        if(mCurrentState == HopperControlState.SENSORED_INTAKE) {
-                            setBeltSpeed(0.0, 0.0);
-                            setIndexSpeed(0.0);
-                        } else if(mCurrentState == HopperControlState.SENSORED_INDEX) {
-                            setBeltSpeed(mCurrentState.leftBeltSpeed, mCurrentState.rightBeltSpeed);
-                            setIndexSpeed(mCurrentState.indexSpeed);
-                        }
+                        } 
                     }
-
                 }
             }
 
             @Override
             public void onStop(double timestamp) {
-                
 
             }
-            
+
         });
     }
 
-
-    public enum HopperControlState {
-        OFF(0.0, 0.0, 0.0),
-        INDEX(0.8, 0.5, 0.75),
-        SENSORED_INDEX(0.8, 0.5, 0.75),
-        SENSORED_INTAKE(0.4, 0.0, 0.0),
-        SLOW_INDEX(0.4, 0.6, 0.6),
-        REVERSE(-0.3, -0.5, -0.5);
+    public enum HopperControlState { //0.8, 0.5, 0.75
+        OFF(0.0, 0.0, 0.0), INDEX(0.6 , 0.5, 0.75), SENSORED_INDEX(0.5, 0.5, 0.75), SENSORED_INTAKE(0.2, 0.2, 0.2),
+        SLOW_INDEX(0.4, 0.6, 0.6), REVERSE(-0.3, -0.5, -0.5), SMART_SENSORED_INDEX(0.8, 0.5, 0.75);
 
         public double indexSpeed = 0.0;
         public double leftBeltSpeed = 0.0;
@@ -207,13 +192,12 @@ public class Hopper extends Subsystem {
         }
     }
 
-
     public synchronized HopperControlState getState() {
         return mCurrentState;
     }
 
     public synchronized void setState(HopperControlState newState) {
-        if(newState != mCurrentState) {
+        if (newState != mCurrentState) {
             mStateChanged = true;
             mStateChangeTimestamp = Timer.getFPGATimestamp();
         }
@@ -231,7 +215,8 @@ public class Hopper extends Subsystem {
 
     public synchronized void conformToState(HopperControlState desiredState) {
         setState(desiredState);
-        if(desiredState != HopperControlState.SENSORED_INDEX || desiredState != HopperControlState.SENSORED_INTAKE) {
+        if (desiredState != HopperControlState.SENSORED_INDEX && desiredState != HopperControlState.SENSORED_INTAKE
+                && desiredState != HopperControlState.SMART_SENSORED_INDEX) {
             setBeltSpeed(desiredState.leftBeltSpeed, desiredState.rightBeltSpeed);
             setIndexSpeed(desiredState.indexSpeed);
         }
@@ -241,14 +226,17 @@ public class Hopper extends Subsystem {
         return mHasBall;
     }
 
+    public synchronized double getNumberOfBallsShot() {
+        return mNumberOfBallsShot;
+    }
+
     private boolean rawBallDetected() {
         return mIndexSensor.getValue() > Constants.kIndexSensorThreshold;
     }
 
-
     public Request stateRequest(HopperControlState desiredState) {
-        return new Request(){
-        
+        return new Request() {
+
             @Override
             public void act() {
                 conformToState(desiredState);
@@ -257,22 +245,22 @@ public class Hopper extends Subsystem {
     }
 
     public Request indexBallNumberRequest(double numberOfBalls) {
-        return new Request(){
-        
+        return new Request() {
+
+            double startNumberOfBalls = mNumberOfBallsShot;
+
             @Override
             public void act() {
-                mNumberOfBallsShot = 0;
-                conformToState(HopperControlState.SENSORED_INTAKE);
+                conformToState(HopperControlState.SENSORED_INDEX);
             }
 
             @Override
             public boolean isFinished() {
-                return mNumberOfBallsShot >= numberOfBalls;
+                return mNumberOfBallsShot >= startNumberOfBalls + numberOfBalls;
             }
         };
     }
 
-    
     @Override
     public void stop() {
         conformToState(HopperControlState.OFF);
@@ -280,29 +268,27 @@ public class Hopper extends Subsystem {
 
     @Override
     public boolean checkSystem() {
-        return TalonSRXChecker.checkMotors(this,
-            new ArrayList<MotorChecker.MotorConfig<LazyTalonSRX>>() {    
+        return TalonSRXChecker.checkMotors(this, new ArrayList<MotorChecker.MotorConfig<LazyTalonSRX>>() {
             private static final long serialVersionUID = 1L;
 
-                {
-                    add(new MotorChecker.MotorConfig<>(mIndexMotor));
-                    add(new MotorChecker.MotorConfig<>(mLeftBelt));
-                    add(new MotorChecker.MotorConfig<>(mRightBelt));
-                }
-            }, new MotorChecker.CheckerConfig() {
-                {
-                    mOutputPercent = 0.5;
-                    mRuntime = 1;
-                    mWaittime = 0.3;
-                    mRPMSupplier = null;
-                }
-            });
+            {
+                add(new MotorChecker.MotorConfig<>(mIndexMotor));
+                add(new MotorChecker.MotorConfig<>(mLeftBelt));
+                add(new MotorChecker.MotorConfig<>(mRightBelt));
+            }
+        }, new MotorChecker.CheckerConfig() {
+            {
+                mOutputPercent = 0.5;
+                mRuntime = 1;
+                mWaittime = 0.3;
+                mRPMSupplier = null;
+            }
+        });
     }
-
 
     @Override
     public void outputTelemetry() {
-        if(debug) {
+        if (debug) {
             SmartDashboard.putString("Hopper State", mCurrentState.toString());
 
             SmartDashboard.putNumber("Index Supply Current", mIndexMotor.getSupplyCurrent());
@@ -312,7 +298,7 @@ public class Hopper extends Subsystem {
             SmartDashboard.putNumber("Left Belt Supply Current", mLeftBelt.getSupplyCurrent());
             SmartDashboard.putNumber("Left Belt Stator Current", mLeftBelt.getStatorCurrent());
             SmartDashboard.putNumber("Left Belt Output", mLeftBelt.getLastSet());
-            
+
             SmartDashboard.putNumber("Right Belt Supply Current", mRightBelt.getSupplyCurrent());
             SmartDashboard.putNumber("Right Belt Stator Current", mRightBelt.getStatorCurrent());
             SmartDashboard.putNumber("Right Belt Output", mRightBelt.getLastSet());

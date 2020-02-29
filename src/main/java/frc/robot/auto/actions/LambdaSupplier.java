@@ -10,27 +10,6 @@ package frc.robot.auto.actions;
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
-
-    private LambdaSupplier mF;
-
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
-    }
-
-    @Override
-    public void start() {
-        mF.f();
-    }
-
-    @Override
-    public void update() {}
-
-    @Override
-    public boolean isFinished() {
-        return true;
-    }
-
-    @Override
-    public void done() {}
+public interface LambdaSupplier {
+    void f();
 }

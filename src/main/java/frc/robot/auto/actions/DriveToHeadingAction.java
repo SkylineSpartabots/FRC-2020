@@ -7,30 +7,39 @@
 
 package frc.robot.auto.actions;
 
+import frc.lib.util.DriveSignal;
+import frc.robot.subsystems.Drive;
+
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
+public class DriveToHeadingAction implements Action {
 
-    private LambdaSupplier mF;
+    private final double mDesiredHeading;
 
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
+    public DriveToHeadingAction(double heading) {
+        mDesiredHeading = heading;
     }
+
 
     @Override
     public void start() {
-        mF.f();
+        Drive.getInstance().turnToHeading(mDesiredHeading, true);
     }
 
     @Override
-    public void update() {}
+    public void update() {
+
+    }
 
     @Override
     public boolean isFinished() {
-        return true;
+        return Drive.getInstance().hasReachedHeadingTarget();
     }
 
     @Override
-    public void done() {}
+    public void done() {
+        Drive.getInstance().setOpenLoop(new DriveSignal(0.0, 0.0));
+
+    }
 }

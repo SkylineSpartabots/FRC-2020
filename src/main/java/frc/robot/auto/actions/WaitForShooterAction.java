@@ -7,30 +7,31 @@
 
 package frc.robot.auto.actions;
 
+import frc.robot.subsystems.Shooter;
+
 /**
  * Add your docs here.
  */
-public class LambdaAction implements Action {
-
-    private LambdaSupplier mF;
-
-    public LambdaAction(LambdaSupplier f) {
-        this.mF = f;
-    }
-
-    @Override
-    public void start() {
-        mF.f();
-    }
-
-    @Override
-    public void update() {}
+public class WaitForShooterAction implements Action {
 
     @Override
     public boolean isFinished() {
-        return true;
+        return Shooter.getInstance().isOnTarget();
+    }
+    
+    @Override
+    public void start() {
+
     }
 
     @Override
-    public void done() {}
+    public void update() {
+
+    }
+
+    
+    @Override
+    public void done() {
+
+    }
 }
