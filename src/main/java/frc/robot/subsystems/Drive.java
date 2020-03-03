@@ -596,7 +596,7 @@ public class Drive extends Subsystem {
     }
 
     public synchronized void setAlignToTarget() {
-        if (mDriveControlState != DriveControlState.ALIGN_TO_TARGET) {
+        if (mDriveControlState != DriveControlState.ALIGN_TO_TARGET && Math.abs(getHeading().getDegrees()) < 45.0) {
             setBrakeMode(true);
             setStatorCurrentLimit(35);
             PheonixUtil.checkError(mLeftMaster.configNeutralDeadband(0.0, Constants.kTimeOutMs),
@@ -613,12 +613,13 @@ public class Drive extends Subsystem {
             mCurrentPath = null;
             mDriveControlState = DriveControlState.ALIGN_TO_TARGET;
             
+
         }
     }
 
     private void updateAlignController() {
         if (mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
-            if (mLimelight.seesTarget()) {
+            if (mLimelight.seesTarget()) { 
                 mRememberedGyroTarget = getHeading().getDegrees() + mLimelight.getXOffset();
                 
                 if(mAlignPidController.atSetpoint()) {
@@ -818,7 +819,6 @@ public class Drive extends Subsystem {
             @Override
             public void act() {
                 setAlignToTarget();
-                TelemetryUtil.print("Aligning to target", PrintStyle.ERROR, false);
             }
 
             @Override

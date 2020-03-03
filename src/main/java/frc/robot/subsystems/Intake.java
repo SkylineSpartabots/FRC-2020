@@ -53,6 +53,7 @@ public class Intake extends Subsystem {
 
     //external subsystem influence
     private final Drive mDrive = Drive.getInstance();
+    private final Hopper mHopper = Hopper.getInstance();
 
 
     private void configureIntakeMotor(LazyTalonSRX talon, InvertType inversion) {
@@ -97,6 +98,14 @@ public class Intake extends Subsystem {
                         setInnerIntakeSpeed(0.0);
                         setOuterIntakeSpeed(-Util.limit(driveVelocity * 0.7, mCurrentState.outerIntakeSpeed));
                     }
+
+                    if(mCurrentState == IntakeControlState.INTAKE) {
+                        if(mInnerIntakeMotor.getStatorCurrent() > Constants.kUnjamCurrentThreshold) {
+                            mHopper.setSlowIndexState(true);
+                        } else {
+                            mHopper.setSlowIndexState(false);
+                        }
+                    }
                 }
             }
 
@@ -115,7 +124,7 @@ public class Intake extends Subsystem {
         IDLE_WHILE_DEPLOYED(0.0, 0.0, true),
         STORE(0.0, 0.7, true), //values for "store" are the max limits for drive velocity proportion logic
         HARD_STORE(0.5, 0.0, true),
-        INTAKE(0.4, 0.4, true),
+        INTAKE(0.40, 0.40, true),
         OUTAKE(-0.5, -0.5, true);
 
         public double innerIntakeSpeed = 0.0;

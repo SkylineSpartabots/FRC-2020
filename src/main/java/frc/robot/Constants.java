@@ -35,7 +35,7 @@ public class Constants {
 	public static final double kDriveMaxAcceleration = 1; //3.166
 	public static final double kDrivePathingProportion = 0.004;
 
-	public static final double kDriveTurnKs = 0.025; //0.04
+	public static final double kDriveTurnKs = 0.035; //0.04
 
 	// Shooter	
 	public static final double kShooterRampRate = 0.2;
@@ -50,6 +50,7 @@ public class Constants {
 	public static final double kShooterStopOnTargetRpm = 150;
 	public static final int kShooterMinOnTargetSamples = 20;
 	public static final double kRawVelocityToRpm = 1195.0/600.0;
+	public static final int kFarShootDistanceThreshold = 180;
 
 	// Limelight
 	public static final double kLensHeight = 26;
@@ -69,7 +70,7 @@ public class Constants {
 	public static final double kSlideDownToWinchTransitionTime = 0.1;
 	public static final double kSlideDownEncoderTarget = 100;
 	public static final double kHookSlideWaitHeightThreshold = 900;
-	public static final double kClimbMaxHeight = 16500; //18200
+	public static final double kClimbMaxHeight = 18800; //18200 sout is op
 	
 	// Air Compressor
 	public static final double kCompressorShutOffCurrent = 60;
@@ -85,6 +86,8 @@ public class Constants {
 	public static final double kStartUnjamTimeThreshold = 1;
 
 	public static final double kStopUnjamTime = 0.4;
+
+	public static final double kUnjamCurrentThreshold = 30.0;
 
 	
 

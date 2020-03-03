@@ -71,6 +71,8 @@ public class Robot extends TimedRobot {
   private final Superstructure mSuperstructure = Superstructure.getInstance();
 
   private Limelight mLimelight = Limelight.getInstance();
+  
+  private double mMatchStartTimestamp = Double.POSITIVE_INFINITY;
 
 
   private final PathGenerator mPathGenerator = PathGenerator.getInstance();
@@ -221,6 +223,8 @@ public class Robot extends TimedRobot {
         mAutoModeExecutor.stop();
       }
 
+      mMatchStartTimestamp = Timer.getFPGATimestamp();
+
       mLimelight.setDriveMode();
       
       shooterClimbShutoff = false;
@@ -296,9 +300,9 @@ public class Robot extends TimedRobot {
 
 
   public void driverControl() {
-
     SmartDashboard.putBoolean("Automated Control", automatedControlEnabled);
     SmartDashboard.putBoolean("Shooter Is Idling?", !shooterClimbShutoff);
+
 
     /* Complete automation controls:
         Start auto shoot sequence - B
@@ -308,8 +312,12 @@ public class Robot extends TimedRobot {
       if(!automatedControlEnabled) {
         mLimelight.setVisionMode();
         mSuperstructure.autoShootSequence();
-        mDriveController.rumble(0.6);
-        mOperatorController.rumble(0.6);
+        mDriveController.rumble(0.8);
+        if(mLimelight.isCloseDistance() && mLimelight.seesTarget()) {
+          mOperatorController.rumble(0.6);
+        } else {
+          mOperatorController.rumble(0.0);
+        }
         automatedControlEnabled = true;
       }
     } else {
@@ -331,12 +339,10 @@ public class Robot extends TimedRobot {
         mLimelight.setVisionMode();
         mDrive.setAlignToTarget();
         mDriveController.rumble(0.2);
-        mOperatorController.rumble(0.2);
       } else {
         mDrive.setArcadeDrive(mDriveController.getY(Hand.kLeft), mDriveController.getX(Hand.kRight));
         mLimelight.setDriveMode();
         mDriveController.rumble(0.0);
-        mOperatorController.rumble(0.0);
       }
     }
 
@@ -352,9 +358,7 @@ public class Robot extends TimedRobot {
         deployIntake = false;
       }
   
-      if(mOperatorController.leftBumper.isBeingPressed() 
-        || mOperatorController.aButton.isBeingPressed()) {
-
+      if(mOperatorController.leftBumper.isBeingPressed() ) {
         mIntake.conformToState(IntakeControlState.INTAKE);
         deployIntake = true;
 
@@ -379,9 +383,9 @@ public class Robot extends TimedRobot {
     */
     if(!automatedControlEnabled) {
       if(mOperatorController.backButton.isBeingPressed()) {
-        mShooter.shootAtSetRpm(4450);
+        mShooter.shootAtSetRpm(4700);
       } else if(mOperatorController.getTriggerAxis(Hand.kLeft) > 0.1) {
-        mShooter.setOpenLoop(Util.limit(mOperatorController.getTriggerAxis(Hand.kLeft)-0.45, 0.2, 0.5));
+        mShooter.setOpenLoop(Util.limit(mOperatorController.getTriggerAxis(Hand.kLeft)-0.35, 0.2, 0.5));
       } else {
         if(!shooterClimbShutoff) {
           mShooter.setOpenLoop(0.2);
@@ -390,6 +394,7 @@ public class Robot extends TimedRobot {
         }
       }
     }
+
     
 
     /* Hopper Control:
@@ -397,15 +402,17 @@ public class Robot extends TimedRobot {
     */
     if(!automatedControlEnabled) {
       if(mOperatorController.rightTrigger.isBeingPressed()) {
-        mHopper.conformToState(HopperControlState.SENSORED_INDEX);
-      } else if(mOperatorController.aButton.isBeingPressed()) {
-        mHopper.conformToState(HopperControlState.OFF);
-      } else if(mOperatorController.leftBumper.isBeingPressed()){
+        mHopper.conformToState(HopperControlState.INDEX);
+      } else if(mOperatorController.leftBumper.isBeingPressed() || mOperatorController.aButton.isBeingPressed()) {
+        mHopper.setSlowIndexState(mOperatorController.aButton.isBeingPressed());
         mHopper.conformToState(HopperControlState.SENSORED_INTAKE);
+      } else if(mOperatorController.getY(Hand.kLeft) < -0.2) {
+        mHopper.conformToState(HopperControlState.REVERSE);
       } else {
         mHopper.conformToState(HopperControlState.OFF);
       }
     }
+
 
 
     /* Climb Control:
@@ -413,16 +420,36 @@ public class Robot extends TimedRobot {
         Retract climb: dpad down
         Winch up: dpad right
     */
-    if(mOperatorController.dpadUp.isBeingPressed()) {
-      shooterClimbShutoff = true;
-      mClimb.conformToState(ClimbControlState.RAISE_HOOK);
-    } else if(mOperatorController.dpadDown.isBeingPressed()) {
-      mClimb.conformToState(ClimbControlState.LOWER_HOOK);
-    } else if(mOperatorController.dpadRight.isBeingPressed()) {
-      mClimb.conformToState(ClimbControlState.WINCH_UP);
+
+    
+
+    if(Timer.getFPGATimestamp() - mMatchStartTimestamp > 95) {
+      if(mOperatorController.dpadUp.isBeingPressed()) {
+        shooterClimbShutoff = true;
+        mClimb.conformToState(ClimbControlState.RAISE_HOOK);
+      } else if(mOperatorController.dpadDown.isBeingPressed()) {
+        mClimb.conformToState(ClimbControlState.LOWER_HOOK);
+      } else if(mOperatorController.dpadRight.isBeingPressed()) {
+        mClimb.conformToState(ClimbControlState.WINCH_UP);
+      } else {
+        if(mOperatorController.getY(Hand.kRight) > 0.2) {
+          mClimb.conformToState(ClimbControlState.OVERRIDE_RAISE_HOOK);
+        } else if(mOperatorController.getY(Hand.kRight) < -0.2) {
+          mClimb.conformToState(ClimbControlState.OVERRIDE_LOWER_HOOK);
+        } else {
+          mClimb.conformToState(ClimbControlState.OFF);
+        }
+      }
     } else {
-      mClimb.conformToState(ClimbControlState.OFF);
+      if(mOperatorController.dpadDown.isBeingPressed()) {
+        mClimb.conformToState(ClimbControlState.LOWER_HOOK);
+      } else {
+        mClimb.conformToState(ClimbControlState.OFF);
+      }
     }
+    
+
+    
 
 
     if(mOperatorController.startButton.isBeingPressed()) {
@@ -446,7 +473,7 @@ public class Robot extends TimedRobot {
   private double mShootCalibrationVelocity = 0.0;
   public void shooterCalibration() {
     mLimelight.setVisionMode();
-    mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
+   //mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
     SmartDashboard.putNumber("Limelight Distance", mLimelight.getDistance());
   
     if(mDriveController.xButton.wasActivated()) {

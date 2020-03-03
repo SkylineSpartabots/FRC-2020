@@ -15,8 +15,6 @@ import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.auto.modes.CrossLine;
 import frc.robot.auto.modes.DoNothing;
 import frc.robot.auto.modes.ShootFiveDepotSide;
-import frc.robot.auto.modes.ShootEightNoPathing;
-import frc.robot.auto.modes.ShootTenNoPathing;
 import frc.robot.auto.modes.ShootThree;
 import frc.robot.auto.modes.TenBallDepotSide;
 import frc.robot.auto.modes.TrenchRun;
@@ -36,10 +34,8 @@ public class AutoModeSelector {
         SHOOT_THREE_CROSS_LINE,
         SHOOT_THREE,
         TRENCH_RUN,
-        SHOOT_FIVE,
+        STEAL_FIVE,
         SHOOT_TEN,
-        SHOOT_EIGHT_NO_PATHING,
-        SHOOT_TEN_NO_PATHING;
     }
 
     private DesiredMode mCachedDesiredMode = null;
@@ -59,15 +55,13 @@ public class AutoModeSelector {
         SmartDashboard.putData("Starting Position", mStartPositionChooser);
 
         mModeChooser = new SendableChooser<>();
-        mModeChooser.setDefaultOption("Trench Run", DesiredMode.SHOOT_EIGHT_NO_PATHING);
-        mModeChooser.addOption("10 Ball", DesiredMode.SHOOT_TEN_NO_PATHING);
+        mModeChooser.setDefaultOption("Trench Run", DesiredMode.TRENCH_RUN);
+        mModeChooser.addOption("10 Ball", DesiredMode.SHOOT_TEN);
         mModeChooser.addOption("Do Nothing", DesiredMode.DO_NOTHING);
         mModeChooser.addOption("Cross Line", DesiredMode.CROSS_LINE);
         mModeChooser.addOption("Shoot Three and Cross Line", DesiredMode.SHOOT_THREE_CROSS_LINE);
         mModeChooser.addOption("Shoot Three Only", DesiredMode.SHOOT_THREE);
-        //mModeChooser.addOption("Shoot Five (only from depot)", DesiredMode.SHOOT_FIVE);
-        //mModeChooser.addOption("Shoot Ten (only from depot)", DesiredMode.SHOOT_TEN);
-        //mModeChooser.addOption("Shoot Eight No Pathing", DesiredMode.SHOOT_EIGHT_NO_PATHING);
+        mModeChooser.addOption("Steal Five", DesiredMode.STEAL_FIVE);
         SmartDashboard.putData("Auto mode", mModeChooser);
     }
 
@@ -93,16 +87,12 @@ public class AutoModeSelector {
                 return Optional.of(new TrenchRun());
             case SHOOT_TEN:
                 return Optional.of(new TenBallDepotSide());
-            case SHOOT_FIVE:
+            case STEAL_FIVE:
                 return Optional.of(new ShootFiveDepotSide());
             case SHOOT_THREE_CROSS_LINE:
                 return Optional.of(new ShootThree(position, true));
             case SHOOT_THREE:
                 return Optional.of(new ShootThree(position, false));
-            case SHOOT_EIGHT_NO_PATHING:
-                return Optional.of(new ShootEightNoPathing());
-            case SHOOT_TEN_NO_PATHING:
-                return Optional.of(new ShootTenNoPathing());
             default:
                 break;
         }

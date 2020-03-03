@@ -61,6 +61,8 @@ public class Hopper extends Subsystem {
     private boolean mHasBall = false;
     private int mNumberOfBallsShot = 0;
 
+    private boolean mSlowIndex = false;
+
     private void configureBeltMotor(LazyTalonSRX talon, InvertType inversion) {
         talon.setInverted(inversion);
 
@@ -111,6 +113,7 @@ public class Hopper extends Subsystem {
                 synchronized (Hopper.this) {
                     mHasBall = false;
                     mNumberOfBallsShot = 0;
+                    mSlowIndex = true;
                 }
             }
 
@@ -120,7 +123,8 @@ public class Hopper extends Subsystem {
                     //System.out.println("Number of Balls: " + mNumberOfBallsShot);
                     if (mCurrentState == HopperControlState.SENSORED_INTAKE
                             || mCurrentState == HopperControlState.SENSORED_INDEX
-                            || mCurrentState == HopperControlState.SMART_SENSORED_INDEX) {
+                            || mCurrentState == HopperControlState.SMART_SENSORED_INDEX
+                            || mCurrentState == HopperControlState.INDEX) {
                         if (rawBallDetected()) {
                             if (Double.isInfinite(mIndexSensorBeganTimestamp)) {
                                 mIndexSensorBeganTimestamp = timestamp;
@@ -139,8 +143,12 @@ public class Hopper extends Subsystem {
 
                     if (mCurrentState == HopperControlState.SENSORED_INTAKE) {
                         if (mHasBall) {
+                            if(mSlowIndex) {
+                                setBeltSpeed(0.25, 0.2);
+                            } else {
+                                setBeltSpeed(0.0, 0.0);
+                            }
                             setIndexSpeed(0.0);
-                            setBeltSpeed(0.0, 0.0);
                         } else {
                             setIndexSpeed(mCurrentState.indexSpeed);
                             setBeltSpeed(mCurrentState.leftBeltSpeed, mCurrentState.rightBeltSpeed);
@@ -178,8 +186,8 @@ public class Hopper extends Subsystem {
     }
 
     public enum HopperControlState { 
-        OFF(0.0, 0.0, 0.0), INDEX(0.6 , 0.5, 0.75), SENSORED_INDEX(0.5, 0.5, 0.75), SENSORED_INTAKE(0.2, 0.2, 0.2),
-        SLOW_INDEX(0.4, 0.6, 0.6), REVERSE(-0.3, -0.5, -0.5), SMART_SENSORED_INDEX(0.8, 0.5, 0.75);
+        OFF(0.0, 0.0, 0.0), INDEX(0.5 , 0.5, 0.75), SENSORED_INDEX(0.5, 0.5, 0.75), SENSORED_INTAKE(0.2, 0.2, 0.2),
+        SLOW_INDEX(0.2, 0.15, 0.0), REVERSE(-0.3, -0.5, -0.5), SMART_SENSORED_INDEX(0.8, 0.5, 0.75);
 
         public double indexSpeed = 0.0;
         public double leftBeltSpeed = 0.0;
@@ -190,6 +198,10 @@ public class Hopper extends Subsystem {
             this.leftBeltSpeed = leftBeltSpeed;
             this.rightBeltSpeed = rightBeltSpeed;
         }
+    }
+
+    public synchronized void setSlowIndexState(boolean state) {
+        mSlowIndex = state;
     }
 
     public synchronized HopperControlState getState() {

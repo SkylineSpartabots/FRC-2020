@@ -80,8 +80,7 @@ public class Limelight extends Subsystem {
     @Override
     public synchronized void outputTelemetry() {
         SmartDashboard.putBoolean("Has Target: ", mSeesTarget);
-        SmartDashboard.putNumber("X-Offset: ", mPeriodicIO.xOffset);
-        SmartDashboard.putNumber("Y-Offset: ", mPeriodicIO.yOffset);
+        SmartDashboard.putBoolean("Is Close Shoot?", isCloseDistance());
     }
 
     public enum LedMode {
@@ -135,7 +134,10 @@ public class Limelight extends Subsystem {
             Math.tan(Math.toRadians(Constants.kLensHorizontalAngle + mPeriodicIO.yOffset));
         x /= Math.cos(Math.toRadians(Math.abs(mPeriodicIO.xOffset)));
         return x-50.0;
+    }
 
+    public synchronized boolean isCloseDistance() {
+        return getDistance() < Constants.kFarShootDistanceThreshold;
     }
 
     @Override

@@ -24,8 +24,6 @@ import frc.lib.drivers.PheonixUtil;
 import frc.lib.drivers.TalonFXChecker;
 import frc.lib.drivers.TalonFXFactory;
 import frc.lib.util.CircularBuffer;
-import frc.lib.util.TelemetryUtil;
-import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.Constants;
 import frc.robot.Ports;
 import frc.robot.loops.ILooper;
@@ -196,7 +194,6 @@ public class Shooter extends Subsystem {
             @Override
             public void onLoop(double timestamp) {
                 synchronized(Shooter.this) {
-                    SmartDashboard.putNumber("Shooter RPM", getCurrentRpm());
                     if(mIsReadingFromVision) {
                         if(!mHasReadFromVision) {
                             if(mLimelight.seesTarget()) {
@@ -215,6 +212,7 @@ public class Shooter extends Subsystem {
                         mOnTarget = false;
                         mOnTargetStartTime = Double.POSITIVE_INFINITY;
                     }
+    
                 }
             }
 
@@ -227,12 +225,9 @@ public class Shooter extends Subsystem {
     }
 
 
+
     private double getRpmFromDistance(double x) {
-        if(mLimelight.getDistance() < 180) {
-            return 4500;
-        } else {
-            return 4450;
-        }
+        return 4800;
     }
 
     public synchronized void shootUsingVision() {
@@ -390,6 +385,7 @@ public class Shooter extends Subsystem {
             } else {
                 mMasterShooter.set(ControlMode.Velocity, mPeriodicIO.setpoint_rpm);
             }
+
         }
     }
 
@@ -398,7 +394,6 @@ public class Shooter extends Subsystem {
      * @return if motor rpm is on target
      */
     public synchronized boolean isOnTarget() {
-        //System.out.println("Testing on target");
         return mControlState == ShooterControlState.HOLD;
     }
 

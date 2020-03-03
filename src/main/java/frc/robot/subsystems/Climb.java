@@ -142,9 +142,11 @@ public class Climb extends Subsystem {
 
     public enum ClimbControlState {
         OFF(0.0, 0.0),
-        RAISE_HOOK(0.25, 0.0),
+        RAISE_HOOK(0.35, 0.0),
         LOWER_HOOK(-0.2, 0.0),
-        WINCH_UP(0.0, 0.85),
+        OVERRIDE_RAISE_HOOK(0.25, 0.0),
+        OVERRIDE_LOWER_HOOK(-0.2, 0.0),
+        WINCH_UP(0.0, 0.95),
         AUTO_WINCH_UP(-0.4, 0.95);
 
         private double hookSlideSpeed = 0.0;
