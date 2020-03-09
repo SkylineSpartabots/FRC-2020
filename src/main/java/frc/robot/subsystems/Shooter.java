@@ -124,11 +124,11 @@ public class Shooter extends Subsystem {
     /**
      * creates two pidf loops, one for spin up and one for holding (just kFF)
      */
-    private void setControllerConstants() {
-        mMasterShooter.config_kP(kSpinUpSlot, Constants.kShooterkP);
-        mMasterShooter.config_kI(kSpinUpSlot, Constants.kShooterkI);
-        mMasterShooter.config_kD(kSpinUpSlot, Constants.kShooterkD);
-        mMasterShooter.config_kF(kSpinUpSlot, Constants.kShooterkF);
+    public synchronized void setControllerConstants() {
+        mMasterShooter.config_kP(kSpinUpSlot, SmartDashboard.getNumber("Shooter kP", 0.0));
+        mMasterShooter.config_kI(kSpinUpSlot, SmartDashboard.getNumber("Shooter kI", 0.0));
+        mMasterShooter.config_kD(kSpinUpSlot, SmartDashboard.getNumber("Shooter kD", 0.0));
+        mMasterShooter.config_kF(kSpinUpSlot, SmartDashboard.getNumber("Shooter kF", 0.031));
         mMasterShooter.config_IntegralZone(kSpinUpSlot, Constants.kShooterIZone);
 
         mMasterShooter.config_kP(kHoldSlot, 0.0);
@@ -151,6 +151,11 @@ public class Shooter extends Subsystem {
         mSlaveShooter.setMaster(mMasterShooter);
 
         setControllerConstants();
+
+        SmartDashboard.putNumber("Shooter kP", 0.0);
+        SmartDashboard.putNumber("Shooter kI", 0.000022);
+        SmartDashboard.putNumber("Shooter kD", 0.0);
+        SmartDashboard.putNumber("Shooter kF", 0.048000);
 
     }
 

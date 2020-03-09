@@ -133,7 +133,7 @@ public class Limelight extends Subsystem {
         double x = (Constants.kTargetHeight - Constants.kLensHeight) / 
             Math.tan(Math.toRadians(Constants.kLensHorizontalAngle + mPeriodicIO.yOffset));
         x /= Math.cos(Math.toRadians(Math.abs(mPeriodicIO.xOffset)));
-        return x-50.0;
+        return x;
     }
 
     public synchronized boolean isCloseDistance() {

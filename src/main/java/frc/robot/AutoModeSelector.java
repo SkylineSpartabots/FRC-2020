@@ -16,7 +16,7 @@ import frc.robot.auto.modes.CrossLine;
 import frc.robot.auto.modes.DoNothing;
 import frc.robot.auto.modes.ShootFiveDepotSide;
 import frc.robot.auto.modes.ShootThree;
-import frc.robot.auto.modes.TenBallDepotSide;
+import frc.robot.auto.modes.TenBall;
 import frc.robot.auto.modes.TrenchRun;
 
 /**
@@ -86,7 +86,7 @@ public class AutoModeSelector {
             case TRENCH_RUN:
                 return Optional.of(new TrenchRun());
             case SHOOT_TEN:
-                return Optional.of(new TenBallDepotSide());
+                return Optional.of(new TenBall());
             case STEAL_FIVE:
                 return Optional.of(new ShootFiveDepotSide());
             case SHOOT_THREE_CROSS_LINE:

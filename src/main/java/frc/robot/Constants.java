@@ -40,8 +40,8 @@ public class Constants {
 	// Shooter	
 	public static final double kShooterRampRate = 0.2;
 	public static final int kShooterKfBufferSize = 20;
-	public static final double kShooterkP = 0.01; //0.22
-	public static final double kShooterkI = 0.00005;
+	public static final double kShooterkP = 0.0; //0.01
+	public static final double kShooterkI = 0.0000; //0.00005
 	public static final double kShooterkD = 0;
 	public static final double kShooterkF = 0.031;
 	public static final double kShooterHoldkF = 0.048;
@@ -53,8 +53,8 @@ public class Constants {
 	public static final int kFarShootDistanceThreshold = 180;
 
 	// Limelight
-	public static final double kLensHeight = 26;
-	public static final double kLensHorizontalAngle = 30;
+	public static final double kLensHeight = 25.75;
+	public static final double kLensHorizontalAngle = 15;
 	public static final double kTargetHeight = 98.5;
 
 	

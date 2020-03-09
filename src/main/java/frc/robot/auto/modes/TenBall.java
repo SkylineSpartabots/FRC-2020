@@ -24,8 +24,7 @@ import frc.robot.subsystems.Intake.IntakeControlState;
 /**
  * Add your docs here.
  */
-public class ShootTenNoPathing extends AutoModeBase {
-
+public class TenBall extends AutoModeBase {
 
     private Shooter mShooter = Shooter.getInstance();
     private Intake mIntake = Intake.getInstance();
@@ -39,35 +38,46 @@ public class ShootTenNoPathing extends AutoModeBase {
         mShooter.setOpenLoop(0.0);
         mDrive.setOpenLoop(new DriveSignal(0, 0));
 
-        mShooter.shootAtSetRpm(4700);
-        mIntake.conformToState(IntakeControlState.INTAKE);
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 3.05, 0.75));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(60.0), 0.4, 0.5));
+        mShooter.setOpenLoop(0.51);
+        mIntake.conformToState(IntakeControlState.STORE);
+        mHopper.conformToState(HopperControlState.OFF);
 
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(60.0), 0.4, -0.5));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 3.00, -0.6));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 1.05, 0.3));
+
+        mIntake.conformToState(IntakeControlState.INTAKE);
+        mHopper.conformToState(HopperControlState.SENSORED_INTAKE);
+
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(60.0), 0.5, 0.21));
+
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(60.0), 0.22, -0.16));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.61, -0.3));
+        mSuperstructure.autoShootNoAlign(5, 4500, 0.0);
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.1, -0.3));
         
         mDrive.setOpenLoop(new DriveSignal(0, 0));
 
-        mSuperstructure.autoShootBalls(5, 4700, 0);
         runAction(new WaitForRequestsAction());
         runAction(new WaitAction(0.15));
 
-        mHopper.conformToState(HopperControlState.OFF);
-        mShooter.setOpenLoop(0.1);
+
+        mHopper.conformToState(HopperControlState.SENSORED_INTAKE);
+        mShooter.setOpenLoop(0.4);
         mIntake.conformToState(IntakeControlState.INTAKE);
 
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(-64.0), 1.28, 0.50));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 1.0, 0.50));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 3.2, 0.8));
-        mShooter.shootAtSetRpm(4600);
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 2.5, -0.8));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(-15), 0.3, -0.65));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(-64.0), 1.12, 0.4));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 4.05, 0.45));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.85, 0.45));
+
+        mShooter.shootAtSetRpm(4750);
+
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.82, -0.7));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 1.32, -0.7));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(-64.0), 1.5, -0.4));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.7, -0.55));
         mDrive.setOpenLoop(new DriveSignal(0.0, 0.0));
         
-        
-
-        mSuperstructure.autoShootBalls(5, 4600, 0.4);
+    
+        mSuperstructure.autoShootNoAlign(5, 4600, 0.0);
         runAction(new WaitForRequestsAction());
 
         mHopper.conformToState(HopperControlState.OFF);

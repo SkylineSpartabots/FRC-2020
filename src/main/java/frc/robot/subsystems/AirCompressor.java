@@ -61,8 +61,8 @@ public class AirCompressor extends Subsystem {
                     } else {
                         startCompressor();
                     }*/
-                    startCompressor();
-                    //stopCompressor();
+                    //startCompressor();
+                    stopCompressor();
 
                 }
             }

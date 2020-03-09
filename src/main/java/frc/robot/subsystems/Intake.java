@@ -125,7 +125,8 @@ public class Intake extends Subsystem {
         STORE(0.0, 0.7, true), //values for "store" are the max limits for drive velocity proportion logic
         HARD_STORE(0.5, 0.0, true),
         INTAKE(0.40, 0.40, true),
-        OUTAKE(-0.5, -0.5, true);
+        OUTAKE(-0.5, -0.5, true),
+        SCORING(0.2, 0.0, true);
 
         public double innerIntakeSpeed = 0.0;
         public double outerIntakeSpeed = 0.0;

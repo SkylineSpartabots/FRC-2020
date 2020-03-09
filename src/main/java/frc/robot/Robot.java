@@ -255,10 +255,10 @@ public class Robot extends TimedRobot {
 
 
       
-      driverControl();
+      //driverControl();
 
-      //SmartDashboard.putNumber("Shooter Calibration Target RPM", 4500);
-      //shooterCalibration();
+      SmartDashboard.putNumber("Shooter Calibration Target RPM", 5700);
+      shooterCalibration();
     
     } catch (Throwable t) {
       CrashTracker.logThrowableCrash(t);
@@ -388,13 +388,17 @@ public class Robot extends TimedRobot {
         mShooter.setOpenLoop(Util.limit(mOperatorController.getTriggerAxis(Hand.kLeft)-0.35, 0.2, 0.5));
       } else {
         if(!shooterClimbShutoff) {
-          mShooter.setOpenLoop(0.2);
+          ///mShooter.setOpenLoop(0.35); //TODO: Change back
+          mShooter.setOpenLoop(0.0);
         } else {
           mShooter.setOpenLoop(0.0);
         }
       }
     }
 
+    if(mDriveController.aButton.isBeingPressed()) {
+      mShooter.setControllerConstants();
+    }
     
 
     /* Hopper Control:
@@ -473,7 +477,7 @@ public class Robot extends TimedRobot {
   private double mShootCalibrationVelocity = 0.0;
   public void shooterCalibration() {
     mLimelight.setVisionMode();
-   //mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
+    mShootCalibrationVelocity = SmartDashboard.getNumber("Shooter Calibration Target RPM", mShootCalibrationVelocity);
     SmartDashboard.putNumber("Limelight Distance", mLimelight.getDistance());
   
     if(mDriveController.xButton.wasActivated()) {

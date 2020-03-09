@@ -186,7 +186,7 @@ public class Hopper extends Subsystem {
     }
 
     public enum HopperControlState { 
-        OFF(0.0, 0.0, 0.0), INDEX(0.5 , 0.5, 0.75), SENSORED_INDEX(0.5, 0.5, 0.75), SENSORED_INTAKE(0.2, 0.2, 0.2),
+        OFF(0.0, 0.0, 0.0), INDEX(0.7 , 0.4, 0.85), SENSORED_INDEX(0.5, 0.5, 0.85), SENSORED_INTAKE(0.2, 0.2, 0.2),
         SLOW_INDEX(0.2, 0.15, 0.0), REVERSE(-0.3, -0.5, -0.5), SMART_SENSORED_INDEX(0.8, 0.5, 0.75);
 
         public double indexSpeed = 0.0;
@@ -258,17 +258,20 @@ public class Hopper extends Subsystem {
 
     public Request indexBallNumberRequest(double numberOfBalls) {
         return new Request() {
-
+            double startTime = 0;
+            double waitTime = 4;
             double startNumberOfBalls = mNumberOfBallsShot;
 
             @Override
             public void act() {
+                startTime = Timer.getFPGATimestamp();
                 conformToState(HopperControlState.SENSORED_INDEX);
             }
 
             @Override
             public boolean isFinished() {
-                return mNumberOfBallsShot >= startNumberOfBalls + numberOfBalls;
+                return (mNumberOfBallsShot >= startNumberOfBalls + numberOfBalls) 
+                    || (Timer.getFPGATimestamp() - startTime) >= waitTime;
             }
         };
     }

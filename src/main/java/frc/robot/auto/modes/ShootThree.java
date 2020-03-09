@@ -7,8 +7,6 @@
 
 package frc.robot.auto.modes;
 
-import frc.lib.util.TelemetryUtil;
-import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.AutoModeSelector.StartingPosition;
 import frc.robot.auto.AutoModeEndedException;
 import frc.robot.auto.actions.DriveOpenLoopAction;

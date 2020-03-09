@@ -49,11 +49,11 @@ public class TrenchRun extends AutoModeBase {
         runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 4.05, 0.45));
         runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.85, 0.4));
 
-        mShooter.shootAtSetRpm(4600);
+        mShooter.shootAtSetRpm(4750);
 
         runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 0.85, -0.6));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 2.35, -0.65));
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(-14.0), 0.3, -0.55));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 2.3, -0.65));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(-14.0), 0.6, -0.55));
         mDrive.setOpenLoop(new DriveSignal(0.0, 0.0));
         
     
