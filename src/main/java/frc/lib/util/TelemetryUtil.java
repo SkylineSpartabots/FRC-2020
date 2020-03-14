@@ -36,7 +36,7 @@ public class TelemetryUtil {
     };
 
     public static void print(String message, PrintStyle style, boolean log){
-        String startKey = log ? "S_LOG " + style.startKey + "<" + String.format("%.2g%n" ,Timer.getFPGATimestamp()) + "> "
+        String startKey = log ? "S_LOG " + style.startKey + "<" + String.format("%.2g%n" , Timer.getFPGATimestamp()) + "> "
             : style.startKey;
         String endKey = log ? style.endKey + " E_LOG" : style.endKey;
 
@@ -61,3 +61,13 @@ public class TelemetryUtil {
         System.out.println(startKey + message + endKey); //YOU KNOW UR BOI CAN System.out.println! 
     }
 }
+/*
+ Messages: ### ###
+        Example: S_LOG ### <timestamp> "message" ### E_LOG
+    Warnings: <<< >>>
+        Example: S_LOG <<< Warning: <timestamp> "message" >>> E_LOG
+    Errors: !!! !!!
+        Example: S_LOG !!! Error: <timestamp> "message" !!! E_LOG
+    Sensor Readings: ||| |||
+        Example: S_LOG ||| Sensor Reading: <timestamp> "message" ||| E_LOG
+*/
