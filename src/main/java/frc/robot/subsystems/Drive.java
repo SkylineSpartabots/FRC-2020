@@ -220,6 +220,7 @@ public class Drive extends Subsystem {
 
         mPeriodicIO.right_position = (mRightMaster.getSelectedSensorPosition() / 2048.0) * 0.0972 * Math.PI
                 * Constants.kDriveWheelDiameterInMeters;
+                
         mPeriodicIO.left_velocity = (mLeftMaster.getSelectedSensorVelocity() / 2048) * 0.0972 * Math.PI
                 * Constants.kDriveWheelDiameterInMeters * 20.0;
 
@@ -819,13 +820,13 @@ public class Drive extends Subsystem {
 
             @Override
             public void act() {
-                //setAlignToTarget();
+                setAlignToTarget();
             }
 
             @Override
             public boolean isFinished() {
-                return true;
-                //return hasAlginedToTarget();
+                //return true;
+                return hasAlginedToTarget();
             }
         };
     }

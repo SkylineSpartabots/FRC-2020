@@ -29,57 +29,87 @@ public class InterstellarAccuracy extends AutoModeBase{
     private Superstructure mSuperstructure = Superstructure.getInstance();
 
     @Override
-    protected void routine() throws AutoModeEndedException {
+    protected void routine() throws AutoModeEndedException { 
+        
+        //vishal, 5, 6
+        /**
+         * Limelight exposure level
+         * Green: 2
+         * Yellow: 2
+         * Blue: 7
+         * Red: 19
+         */
+
         mShooter.setOpenLoop(0.0);
         mDrive.setOpenLoop(new DriveSignal(0, 0));
+        mIntake.conformToState(IntakeControlState.DOWN);
 
-        
+
         shoot(Constants.kGreenZoneRPM, Constants.kYellowZoneRPM);
         
         
         //Green zone to reintroduction
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 5.2, 0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 6, 0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
         
-        
+        //runAction(new WaitAction(1));
         reintroduction();
 
 
         //Reintroduction to yellow zone
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 4.5, -0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 4.35, -0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
 
-        shoot(Constants.kYellowZoneRPM, Constants.kBlueZoneRPM);
-
+       shoot(Constants.kYellowZoneRPM, Constants.kBlueZoneRPM);
+       //runAction(new WaitAction(5));
 
 
         //yellow zone to reintroduction
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 4.5, 0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 4.45, 0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
         
         reintroduction();
-
+     //runAction(new WaitAction(1));
 
         //reintroduction to blue zone
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 3.0, -0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 2.95, -0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
         
         shoot(Constants.kBlueZoneRPM, Constants.kRedZoneRPM);
        
         //blue zone to reintroduction
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 3.0, 0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 3.05, 0.15));
+        mDrive.setOpenLoop(new DriveSignal(0, 0));
+
+        reintroduction();
+
+        //reintroduction to blue zone
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 2.95, -0.15));
+        mDrive.setOpenLoop(new DriveSignal(0, 0));
+        
+        shoot(Constants.kBlueZoneRPM, Constants.kRedZoneRPM);
+       
+        //blue zone to reintroduction
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 3.05, 0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
 
         reintroduction();
 
 
         //reintroduction to red zone
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), -1.5, -0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 1.6, -0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
         
         shoot(Constants.kRedZoneRPM, 0);
         
-        mIntake.conformToState(IntakeControlState.OFF);
+    /*    //red to reintroduction
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 1.6, 0.15));
+        mDrive.setOpenLoop(new DriveSignal(0, 0));
+
+        reintroduction();*/
+
+
+        mIntake.conformToState(IntakeControlState.DOWN);
         mHopper.conformToState(HopperControlState.OFF);
         mShooter.setOpenLoop(0);
         mDrive.setOpenLoop(new DriveSignal(0, 0));
@@ -87,18 +117,33 @@ public class InterstellarAccuracy extends AutoModeBase{
     }
 
 
-
+    /**
+     * Intakes until a ball is recognized by the beambreak
+     * @throws AutoModeEndedException
+     */
     private void reintroduction() throws AutoModeEndedException {
         mSuperstructure.intakeUntilBallDetected();
         runAction(new WaitForRequestsAction());
+        mHopper.conformToState(HopperControlState.OFF);
     }
 
+    /**
+     * shoots 3 balls at current rpm
+     * then ramps shooter for nextrpm
+     */
     private void shoot(int currentRPM, int nextRPM) throws AutoModeEndedException {
-        runAction(new WaitAction(0.25));
-        mSuperstructure.autoShootBalls(3, currentRPM, 0);
+        runAction(new WaitAction(1));
+        mSuperstructure.autoShootBalls(1, currentRPM, 2);
+        runAction(new WaitAction(3));
+        runAction(new WaitForRequestsAction());
+        mSuperstructure.autoShootBalls(1, currentRPM, 3);
+        runAction(new WaitAction(3));
+        runAction(new WaitForRequestsAction());
+        mSuperstructure.autoShootBalls(1, currentRPM, 2);
         runAction(new WaitForRequestsAction());
 
-        mShooter.shootAtSetRpm(nextRPM);
+        mShooter.setOpenLoop(0.0);
+        mHopper.conformToState(HopperControlState.OFF);
     }
     
 }
