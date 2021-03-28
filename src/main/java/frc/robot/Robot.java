@@ -11,7 +11,6 @@ import java.util.Optional;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
@@ -19,13 +18,11 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.lib.controllers.OverridesController;
 import frc.lib.controllers.Xbox;
 import frc.lib.util.CrashTracker;
-import frc.lib.util.DriveSignal;
 import frc.lib.util.TelemetryUtil;
 import frc.lib.util.Util;
 import frc.lib.util.TelemetryUtil.PrintStyle;
 import frc.robot.auto.AutoModeExecutor;
 import frc.robot.auto.modes.AutoModeBase;
-import frc.robot.auto.modes.CrossLine;
 import frc.robot.loops.Looper;
 import frc.robot.paths.PathGenerator;
 import frc.robot.subsystems.AirCompressor;
@@ -33,16 +30,15 @@ import frc.robot.subsystems.Climb;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Hopper;
 import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.LED;
 import frc.robot.subsystems.Limelight;
 import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Spinner;
 import frc.robot.subsystems.SubsystemManager;
 import frc.robot.subsystems.Superstructure;
 import frc.robot.subsystems.Climb.ClimbControlState;
 import frc.robot.subsystems.Hopper.HopperControlState;
 import frc.robot.subsystems.Intake.IntakeControlState;
 import frc.robot.subsystems.Limelight.LedMode;
+import frc.robot.subsystems.requests.Request;
 
 
 public class Robot extends TimedRobot {
@@ -52,6 +48,7 @@ public class Robot extends TimedRobot {
   private final Looper mDisabledLooper = new Looper();
 
   //Drive team Controllers
+  //public static final Xbox mDriveController = new Xbox(0);
   private final Xbox mDriveController = new Xbox(0);
   private final Xbox mOperatorController = new Xbox(1);
   private final OverridesController mOverridesController = OverridesController.getInstance();
@@ -230,6 +227,8 @@ public class Robot extends TimedRobot {
       shooterClimbShutoff = false;
       deployIntake = true;
       automatedControlEnabled = false;
+      SmartDashboard.putNumber("Shooter Calibration Target RPM", 5700);
+
 
       mEnabledLooper.start();
     } catch (Throwable t) {
@@ -254,10 +253,17 @@ public class Robot extends TimedRobot {
       mOverridesController.update();
 
 
-      
-      //driverControl();
+      /**
+       * driverControl for normal competition style operation
+       * shooterCalibration for controlling rpm via SmartDashboard
+       * 
+       * (shooterCalibrartion shooter controls)
+       * y - set shooter RPM from Smartdashboard
+       * a - ramp up shooter to specified RPM
+       * left trigger - index balls
+       */
 
-      SmartDashboard.putNumber("Shooter Calibration Target RPM", 5700);
+      //driverControl();
       shooterCalibration();
     
     } catch (Throwable t) {
@@ -295,7 +301,7 @@ public class Robot extends TimedRobot {
     }
   }
 
-  
+
 
 
 
@@ -469,8 +475,6 @@ public class Robot extends TimedRobot {
         Open loop on spinner - right joy x
     */
     
-    
-  
   }
 
 
@@ -488,6 +492,10 @@ public class Robot extends TimedRobot {
       mShooter.shootAtSetRpm(mShootCalibrationVelocity);
     } else {
       mShooter.setOpenLoop(0.0);
+    }
+
+    if(mDriveController.yButton.wasActivated()) {
+      mShooter.setControllerConstants();
     }
 
 

@@ -4,7 +4,6 @@ package frc.robot.subsystems;
 import java.util.ArrayList;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.DemandType;
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
@@ -656,6 +655,8 @@ public class Drive extends Subsystem {
     public synchronized boolean hasAlginedToTarget() {
         if (mDriveControlState == DriveControlState.ALIGN_TO_TARGET) {
             return mIsAlignedToTarget;
+            //return true;
+            //TODO: Change back
         }
 
         return false;
@@ -818,12 +819,13 @@ public class Drive extends Subsystem {
 
             @Override
             public void act() {
-                setAlignToTarget();
+                //setAlignToTarget();
             }
 
             @Override
             public boolean isFinished() {
-                return hasAlginedToTarget();
+                return true;
+                //return hasAlginedToTarget();
             }
         };
     }

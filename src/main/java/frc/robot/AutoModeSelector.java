@@ -14,6 +14,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.auto.modes.AutoModeBase;
 import frc.robot.auto.modes.CrossLine;
 import frc.robot.auto.modes.DoNothing;
+import frc.robot.auto.modes.InterstellarAccuracy;
+import frc.robot.auto.modes.PowerPort;
 import frc.robot.auto.modes.ShootFiveDepotSide;
 import frc.robot.auto.modes.ShootThree;
 import frc.robot.auto.modes.TenBall;
@@ -55,8 +57,8 @@ public class AutoModeSelector {
         SmartDashboard.putData("Starting Position", mStartPositionChooser);
 
         mModeChooser = new SendableChooser<>();
-        mModeChooser.setDefaultOption("Trench Run", DesiredMode.TRENCH_RUN);
-        mModeChooser.addOption("10 Ball", DesiredMode.SHOOT_TEN);
+        mModeChooser.setDefaultOption("Interstellar Accuracy", DesiredMode.TRENCH_RUN);
+        mModeChooser.addOption("Power Port", DesiredMode.SHOOT_TEN);
         mModeChooser.addOption("Do Nothing", DesiredMode.DO_NOTHING);
         mModeChooser.addOption("Cross Line", DesiredMode.CROSS_LINE);
         mModeChooser.addOption("Shoot Three and Cross Line", DesiredMode.SHOOT_THREE_CROSS_LINE);
@@ -84,9 +86,9 @@ public class AutoModeSelector {
             case CROSS_LINE:
                 return Optional.of(new CrossLine());
             case TRENCH_RUN:
-                return Optional.of(new TrenchRun());
+                return Optional.of(new InterstellarAccuracy());
             case SHOOT_TEN:
-                return Optional.of(new TenBall());
+                return Optional.of(new PowerPort());
             case STEAL_FIVE:
                 return Optional.of(new ShootFiveDepotSide());
             case SHOOT_THREE_CROSS_LINE:

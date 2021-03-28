@@ -16,6 +16,13 @@ public class Constants {
 	// Cycle speed for looper threads
 	public static final double kLooperDt = 0.01;
 
+	
+	//Interstellar Accuracy Constants
+	public static final int kGreenZoneRPM = 4850;
+	public static final int kYellowZoneRPM = 4850;
+	public static final int kBlueZoneRPM = 4850;
+	public static final int kRedZoneRPM = 4850;
+	
 	// Drive
 	public static final double kDriveWheelTrackWidthMeters = 23.0 * 0.0254; //26.125
 	public static final double kDriveWheelDiameter = 6.0;

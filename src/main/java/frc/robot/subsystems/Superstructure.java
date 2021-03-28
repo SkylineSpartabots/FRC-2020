@@ -265,6 +265,8 @@ public class Superstructure extends Subsystem {
     }
 
 
+
+
     public void autoShootBalls(int balls, int rpm, double waitTime) {
         RequestList state = new RequestList(Arrays.asList( 
             mDrive.alignToTargetRequest(), mShooter.setVelocityAndWaitRequest(rpm), mIntake.stateRequest(IntakeControlState.SCORING), mHopper.stateRequest(HopperControlState.OFF)), true);
@@ -279,6 +281,13 @@ public class Superstructure extends Subsystem {
         RequestList queue = new RequestList(Arrays.asList(waitRequest(waitTime), mHopper.indexBallNumberRequest(balls)), false);
         request(state);
         replaceQueue(queue);
+    }
+
+    public void intakeUntilBallDetected() {
+        RequestList state = new RequestList(Arrays.asList(intakeUntilBallDetectedRequest(),
+            waitRequest(1)), false); //change waitRequest time for more or less time after ball detection
+
+        request(state);
     }
 
 
@@ -317,6 +326,24 @@ public class Superstructure extends Subsystem {
             public boolean isFinished() {
                 return mLimelight.seesTarget();
             }
+        };
+    }
+
+    public Request intakeUntilBallDetectedRequest() {
+        return new Request() {
+
+            @Override
+            public void act() {
+                mHopper.conformToState(HopperControlState.SENSORED_INTAKE);
+                mIntake.conformToState(IntakeControlState.INTAKE);
+                
+            }
+
+            @Override
+            public boolean isFinished() {
+                return mHopper.hasIndexedBall();
+            }
+
         };
     }
 

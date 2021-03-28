@@ -184,6 +184,7 @@ public class Intake extends Subsystem {
         };
     }
 
+
     @Override
     public void stop() {
         conformToState(IntakeControlState.OFF);

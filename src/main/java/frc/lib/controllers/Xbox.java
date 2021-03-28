@@ -10,10 +10,9 @@ package frc.lib.controllers;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.lib.util.*;
+import frc.robot.subsystems.requests.Request;
 
-/**
- * Add your docs here.
- */
+
 public class Xbox extends XboxController {
     public Button aButton, bButton, xButton, yButton, startButton, backButton,
         leftBumper, rightBumper, leftJoystickButton, rightJoystickButton, leftTrigger,
@@ -228,6 +227,20 @@ public class Xbox extends XboxController {
 
         public boolean isBeingPressed() {
             return buttonActive;
+        }
+
+        public Request buttonPressedRequest() {
+            return new Request(){
+
+                @Override
+                public void act() {}
+          
+                @Override
+                    public boolean isFinished() {
+                        return isBeingPressed();
+                    }
+                
+              };
         }
     }
 
