@@ -19,10 +19,11 @@ public class Constants {
 	
 	//Interstellar Accuracy Constants
 	public static final int kGreenZoneRPM = 1850;
-	public static final int kYellowZoneRPM = 4500;
-	public static final int kBlueZoneRPM = 4350;
-	public static final int kRedZoneRPM = 4450;
+	public static final int kYellowZoneRPM = 4900;
+	public static final int kBlueZoneRPM = 4200;
+	public static final int kRedZoneRPM = 4300;
 	
+	public static final int kBlueZonePowerPortRPM = 4100;
 	// Drive
 	public static final double kDriveWheelTrackWidthMeters = 23.0 * 0.0254; //26.125
 	public static final double kDriveWheelDiameter = 6.0;

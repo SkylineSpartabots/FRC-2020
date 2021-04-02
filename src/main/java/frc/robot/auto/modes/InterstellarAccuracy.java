@@ -37,7 +37,7 @@ public class InterstellarAccuracy extends AutoModeBase{
          * Green: 2
          * Yellow: 2
          * Blue: 7
-         * Red: 19
+         * Red: 19 //7? 16, balls 2 6 and vishal
          */
 
         mShooter.setOpenLoop(0.0);
@@ -47,7 +47,7 @@ public class InterstellarAccuracy extends AutoModeBase{
 
         shoot(Constants.kGreenZoneRPM, Constants.kYellowZoneRPM);
         
-        
+       
         //Green zone to reintroduction
         runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0.0), 6, 0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
@@ -97,9 +97,10 @@ public class InterstellarAccuracy extends AutoModeBase{
 
 
         //reintroduction to red zone
-        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 1.6, -0.15));
+        runAction(new PerfectlyStraightDriveAction(Rotation2d.fromDegrees(0), 1.75, -0.15));
         mDrive.setOpenLoop(new DriveSignal(0, 0));
         
+
         shoot(Constants.kRedZoneRPM, 0);
         
     /*    //red to reintroduction
@@ -118,7 +119,7 @@ public class InterstellarAccuracy extends AutoModeBase{
 
 
     /**
-     * Intakes until a ball is recognized by the beambreak
+     * Intakes until a ball is recognized by the beambreak // just waits now.
      * @throws AutoModeEndedException
      */
     private void reintroduction() throws AutoModeEndedException {
@@ -134,12 +135,12 @@ public class InterstellarAccuracy extends AutoModeBase{
     private void shoot(int currentRPM, int nextRPM) throws AutoModeEndedException {
         runAction(new WaitAction(1));
         mSuperstructure.autoShootBalls(1, currentRPM, 2);
-        runAction(new WaitAction(3));
+        //runAction(new WaitAction(5));
         runAction(new WaitForRequestsAction());
         mSuperstructure.autoShootBalls(1, currentRPM, 3);
-        runAction(new WaitAction(3));
+        //runAction(new WaitAction(5));
         runAction(new WaitForRequestsAction());
-        mSuperstructure.autoShootBalls(1, currentRPM, 2);
+        mSuperstructure.autoShootBalls(1, currentRPM, 3);
         runAction(new WaitForRequestsAction());
 
         mShooter.setOpenLoop(0.0);

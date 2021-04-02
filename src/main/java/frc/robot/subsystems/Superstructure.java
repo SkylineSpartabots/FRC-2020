@@ -285,7 +285,7 @@ public class Superstructure extends Subsystem {
 
     public void intakeUntilBallDetected() {
         RequestList state = new RequestList(Arrays.asList(//intakeUntilBallDetectedRequest(),
-            waitRequest(7)), false); //change waitRequest time for more or less time after ball detection
+            waitRequest(2)), false); //change waitRequest time for more or less time after ball detection
 
         request(state);
     }

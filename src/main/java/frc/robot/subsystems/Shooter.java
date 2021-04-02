@@ -131,7 +131,7 @@ public class Shooter extends Subsystem {
         // mMasterShooter.config_kF(kSpinUpSlot, SmartDashboard.getNumber("Shooter kF", 0.048));
 
         mMasterShooter.config_kP(kSpinUpSlot, 0.0);
-        mMasterShooter.config_kI(kSpinUpSlot, 0.000022);
+        mMasterShooter.config_kI(kSpinUpSlot, 0.00001); // 0.000022
         mMasterShooter.config_kD(kSpinUpSlot, 0.0);
         mMasterShooter.config_kF(kSpinUpSlot, 0.048);
         mMasterShooter.config_IntegralZone(kSpinUpSlot, Constants.kShooterIZone);
